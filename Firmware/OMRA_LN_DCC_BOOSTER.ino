@@ -6,6 +6,10 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Filters.h>
+ 
+#include <AH/Hardware/FilteredAnalog.hpp>
+#include <AH/Timing/MillisMicrosTimer.hpp>
 
 #define OLED_RESET 4
 #define SCREEN_WIDTH 128
@@ -27,26 +31,34 @@ float ULTRA_SLOW_BLOW_TIME = 30000; // Milliseconds To Trip Ultra Slow Blow Fuse
 float SLOW_BLOW_LIMIT = 4.9; // Upper Limit Of The Slow Blow Region In Amps
 float SLOW_BLOW_TIME = 15000; // Milliseconds To Trip Slow Blow Fuse
 float FAST_BLOW_LIMIT = 5.1; // Upper Limit Of The Fast Blow Region In Amps. Anything Above This Will Blow Ultra Fast
-float FAST_BLOW_TIME = 500; // Milliseconds To Trip Fast Blow Fuse
-float ULTRA_FAST_TIME = 20; // Milliseconds To Trip Ultra Fast Fuse
+float FAST_BLOW_TIME = 250; // Milliseconds To Trip Fast Blow Fuse
+float BOOSTER_SOFT_START_PULSE_TIME = 100; // Milliseconds To Pulse 
 float BOOSTER_REBOOT_TIME = 2000; // Milliseconds To Wait 
 float BOOSTER_TRIPPED_COUNTER_RESET = 65000; // Milliseconds To Go Without A Current Trip To Reset Trip Counter Must Be Higher Than Longest Current Cutout Duration Of 60 Seconds
-float RPWM_TIMER_LIMIT = 5000; // Milliseconds To Go Without Valid Railsync Commands Before Boosters Shutdown 
-int RPWM_SIG_EDGES = 3; // Edges To Trigger RailSync Active Or Not Within RPWM_TRIGGER_LIMIT Timeframe
+float RPWM_TIMER_LIMIT = 2500; // Milliseconds To Go Without Valid Railsync Commands Before Boosters Shutdown 
+int RPWM_SIG_EDGES = 10; // Edges To Trigger RailSync Active Or Not Within RPWM_TRIGGER_LIMIT Timeframe
 int POWER_BTN_LAST = 0; // A Zero Here Will Power Up The Track On Startup. A 1 Here Will Power Up With Track Power Off
+int BOOSTER1_SOFTSTART_COUNT = 20;
+int BOOSTER2_SOFTSTART_COUNT = 20;
+float BOOSTER1_SOFTSTART_MULT = 2;
+float BOOSTER2_SOFTSTART_MULT = 11;
+float BOOSTER1_SOFTSTART_TIME = 5;
+float BOOSTER2_SOFTSTART_TIME = 5;
+float BOOST1_CSENSE_OFFSET = 270;
+float BOOST2_CSENSE_OFFSET = 270;
+float BOOSTER1_CSENSE_MOD = 2.42;
+float BOOSTER2_CSENSE_MOD = 2.42;
 
 
 int BOOSTER1_REBOOT_COUNT = 0;
 int BOOSTER2_REBOOT_COUNT = 0;
 int RPWM_RX_COUNT = 0;
 int RPWM_COUNT = 0;
-int RPWM_DETECT = 0;
+int RPWM_DETECT = 1;
 bool RPWM_RX_TIMER_ACTIVE = false;
-bool PWR_OVERIDE = false;
 bool BOOST1_ENABLED = false;
 bool IS_POWER1_TRIPPED = false;
 bool IS_POWER1_ULTRA_TRIPPED = false;
-bool IS_POWER1_ULTRA_PRE_TRIPPED = false;
 bool IS_POWER1_FAST_TRIPPED = false;
 bool IS_POWER1_FAST_PRE_TRIPPED = false;
 bool IS_POWER1_SLOW_TRIPPED = false;
@@ -56,7 +68,6 @@ bool IS_POWER1_ULTRA_SLOW_PRE_TRIPPED = false;
 bool BOOST2_ENABLED = false;
 bool IS_POWER2_TRIPPED = false;
 bool IS_POWER2_ULTRA_TRIPPED = false;
-bool IS_POWER2_ULTRA_PRE_TRIPPED = false;
 bool IS_POWER2_FAST_TRIPPED = false;
 bool IS_POWER2_FAST_PRE_TRIPPED = false;
 bool IS_POWER2_SLOW_TRIPPED = false;
@@ -64,13 +75,19 @@ bool IS_POWER2_SLOW_PRE_TRIPPED = false;
 bool IS_POWER2_ULTRA_SLOW_TRIPPED = false;
 bool IS_POWER2_ULTRA_SLOW_PRE_TRIPPED = false;
 bool RPWM_TIMER_ACTIVE = false;
-float RPWM_TIMER = 0;
 int MICRO_PWR = 0;
 float BOOST1_CURRENT = 0;
 float BOOST2_CURRENT = 0;
 float BOOST1_AMPS = 0;
 float BOOST2_AMPS = 0;
-float RPWM_LAST = 0;
+float BOOST1_AMPS_RAW = 0;
+float BOOST2_AMPS_RAW = 0;
+float BOOST1_CURRENT_RAW = 0;
+float BOOST2_CURRENT_RAW = 0;
+int RPWM_LAST = 1;
+
+FilteredAnalog<> BOOST1_FILTERED = C_SENSE1_PIN; // Booster 1 Current Sensing Pin
+FilteredAnalog<> BOOST2_FILTERED = C_SENSE2_PIN; // Booster 2 Current Sensing Pin
 
 unsigned long time1;
 unsigned long time2;
@@ -80,7 +97,7 @@ unsigned long BOOSTER1_SHUTDOWN_TIME;
 unsigned long BOOSTER2_SHUTDOWN_TIME;
 unsigned long BOOSTER1_LAST_POWER_ON;
 unsigned long BOOSTER2_LAST_POWER_ON;
-unsigned long RPWM_RX_TIMER;
+unsigned long RPWM_TIMER;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
@@ -311,6 +328,8 @@ void setup() {
   pinMode(LN_TX_MICRO_PIN, OUTPUT); 
   pinMode(AR_RLY_PIN, OUTPUT); 
 
+  FilteredAnalog<>::setupADC();
+
   // Start Display
 
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // here the 0x3c is the I2C address, check your i2c address if u have multiple devices.
@@ -377,12 +396,18 @@ void turnPowerOff() {
 }
 
 void turnPower1On() {
+  for ( int x = 0; x < BOOSTER1_SOFTSTART_COUNT; x++ ) {
+  digitalWrite(EN1_PIN, HIGH);
+  delay(BOOSTER1_SOFTSTART_TIME);
+  digitalWrite(EN1_PIN, LOW);
+  delay(BOOSTER1_SOFTSTART_TIME * BOOSTER1_SOFTSTART_MULT);
+  }
+
   digitalWrite(EN1_PIN, HIGH);
   BOOST1_ENABLED = true;
   BOOSTER1_LAST_POWER_ON = millis();
   IS_POWER1_TRIPPED = false;
   IS_POWER1_ULTRA_TRIPPED = false;
-  IS_POWER1_ULTRA_PRE_TRIPPED = false;
   IS_POWER1_FAST_TRIPPED = false;
   IS_POWER1_FAST_PRE_TRIPPED = false;
   IS_POWER1_SLOW_TRIPPED = false;
@@ -392,12 +417,17 @@ void turnPower1On() {
 }
 
 void turnPower2On() {
+    for ( int x = 0; x < BOOSTER2_SOFTSTART_COUNT; x++ ) {
+  digitalWrite(EN2_PIN, HIGH);
+  delay(BOOSTER2_SOFTSTART_TIME);
+  digitalWrite(EN2_PIN, LOW);
+  delay(BOOSTER2_SOFTSTART_TIME * BOOSTER2_SOFTSTART_MULT);
+  }
   digitalWrite(EN2_PIN, HIGH);
   BOOST2_ENABLED = true;
   BOOSTER2_LAST_POWER_ON = millis();
   IS_POWER2_TRIPPED = false;
   IS_POWER2_ULTRA_TRIPPED = false;
-  IS_POWER2_ULTRA_PRE_TRIPPED = false;
   IS_POWER2_FAST_TRIPPED = false;
   IS_POWER2_FAST_PRE_TRIPPED = false;
   IS_POWER2_SLOW_TRIPPED = false;
@@ -428,48 +458,52 @@ void loop() {
 
   // Detect Power Button High, Makes Sure Not To Turn On While Tripped, Only Tries To Power On If Not Tried Within A Set Period, And Only Activates On Switch Change From Off To On
 
-  if ((MICRO_PWR == HIGH) && (IS_POWER1_TRIPPED == false) && ((millis() - BOOSTER1_LAST_POWER_ON) >= 250 ) && (PWR_OVERIDE == false) && (MICRO_PWR != POWER_BTN_LAST)) {
+  if ((MICRO_PWR == HIGH) && (IS_POWER1_TRIPPED == false) && ((millis() - BOOSTER1_LAST_POWER_ON) >= 250 ) && (MICRO_PWR != POWER_BTN_LAST)) {
     turnPower1On();
   }
 
  // Detect Power Button High, Makes Sure Not To Turn On While Tripped, Only Tries To Power On If Not Tried Within A Set Period, And Only Activates On Switch Change From Off To On
 
-  if ((MICRO_PWR == HIGH) && (IS_POWER2_TRIPPED == false) && ((millis() - BOOSTER2_LAST_POWER_ON) >= 250 ) && (PWR_OVERIDE == false) && (MICRO_PWR != POWER_BTN_LAST)) {
+  if ((MICRO_PWR == HIGH) && (IS_POWER2_TRIPPED == false) && ((millis() - BOOSTER2_LAST_POWER_ON) >= 250 ) && (MICRO_PWR != POWER_BTN_LAST)) {
     turnPower2On();
   }
 
   // Check Current Of Boosters 1 and 2
-  
-  // Booster 1 Give 10% Weight To New Readings To Filter Noise
-  
-  for (int i=0; i < 10; i++) {
-    BOOST1_CURRENT = BOOST1_CURRENT + analogRead(C_SENSE1_PIN);
+
+  // Booster 1
+
+  BOOST1_FILTERED.update();
+
+  // Serial.print("     ");
+  // Serial.print(BOOST1_FILTERED.getValue());
+  // Serial.print("     ");
+
+  BOOST1_CURRENT = BOOST1_FILTERED.getValue() - BOOST1_CSENSE_OFFSET;
+  BOOST1_AMPS = BOOSTER1_CSENSE_MOD * ((BOOST1_CURRENT * .004887) * 2.5767); //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
+
+  BOOST1_CURRENT_RAW = analogRead(C_SENSE1_PIN) - BOOST1_CSENSE_OFFSET;
+  BOOST1_AMPS_RAW = BOOSTER1_CSENSE_MOD * ((BOOST1_CURRENT_RAW * .004887) * 2.5767); //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
+
+  if (BOOST1_AMPS <= 0.04) {
+    BOOST1_AMPS = 0.0;
   }
-  BOOST1_CURRENT = BOOST1_CURRENT/10;
-  BOOST1_AMPS = ((BOOST1_CURRENT / 204.8) * 2.58);  //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
-  
+
+  if (BOOST1_AMPS_RAW <= 0.04) {
+    BOOST1_AMPS_RAW = 0.0;
+  }
+
   // Stage 1
   
-  if (BOOST1_AMPS >= (FAST_BLOW_LIMIT + .01)) {
-    if(IS_POWER1_ULTRA_PRE_TRIPPED == false){
-      BOOST1_TIMER = millis();
-      IS_POWER1_ULTRA_PRE_TRIPPED = true;
-    }
-    time1 = millis();
-    if ((time1 - BOOST1_TIMER) >= ULTRA_FAST_TIME){
-      turnPower1Off();
-      IS_POWER1_TRIPPED = true;
-      IS_POWER1_ULTRA_TRIPPED = true;
-      IS_POWER1_ULTRA_PRE_TRIPPED = false;
-      BOOSTER1_SHUTDOWN_TIME = millis();
-    }
-  } else if (BOOST1_AMPS <= (FAST_BLOW_LIMIT + .01)) {
-    IS_POWER1_ULTRA_PRE_TRIPPED = false;
+  if (BOOST1_AMPS_RAW >= (FAST_BLOW_LIMIT + .01)) {
+    turnPower1Off();
+    IS_POWER1_TRIPPED = true;
+    IS_POWER1_ULTRA_TRIPPED = true;
+    BOOSTER1_SHUTDOWN_TIME = millis();
   } 
     
     // Stage 2
     
-    else if (BOOST1_AMPS >= (SLOW_BLOW_LIMIT + .01)) {
+  else if (BOOST1_AMPS >= (SLOW_BLOW_LIMIT + .01)) {
     if(IS_POWER1_FAST_PRE_TRIPPED == false){
       BOOST1_TIMER = millis();
       IS_POWER1_FAST_PRE_TRIPPED = true;
@@ -482,13 +516,14 @@ void loop() {
       IS_POWER1_FAST_PRE_TRIPPED = false;
       BOOSTER1_SHUTDOWN_TIME = millis();
     }
-  } else if (BOOST1_AMPS <= (SLOW_BLOW_LIMIT + .01)) {
+  } 
+  else if (BOOST1_AMPS <= (SLOW_BLOW_LIMIT + .01)) {
     IS_POWER1_FAST_PRE_TRIPPED = false;
   } 
   
     // Stage 3
 
-    else if (BOOST1_AMPS >= (ULTRA_SLOW_BLOW_LIMIT + .01)) {
+  else if (BOOST1_AMPS >= (ULTRA_SLOW_BLOW_LIMIT + .01)) {
     if(IS_POWER1_SLOW_PRE_TRIPPED == false){
       BOOST1_TIMER = millis();
       IS_POWER1_SLOW_PRE_TRIPPED = true;
@@ -501,13 +536,14 @@ void loop() {
       IS_POWER1_SLOW_PRE_TRIPPED = false;
       BOOSTER1_SHUTDOWN_TIME = millis();
     }
-  } else if (BOOST1_AMPS <= (ULTRA_SLOW_BLOW_LIMIT + .01)) {
+  } 
+  else if (BOOST1_AMPS <= (ULTRA_SLOW_BLOW_LIMIT + .01)) {
     IS_POWER1_SLOW_PRE_TRIPPED = false;
   } 
   
     // Stage 4
     
-    else  if (BOOST1_AMPS >= (CURRENT_LIMIT + .01)) {
+  else  if (BOOST1_AMPS >= (CURRENT_LIMIT + .01)) {
     if(IS_POWER1_ULTRA_SLOW_PRE_TRIPPED == false){
       BOOST1_TIMER = millis();
       IS_POWER1_ULTRA_SLOW_PRE_TRIPPED = true;
@@ -520,59 +556,65 @@ void loop() {
       IS_POWER1_ULTRA_SLOW_PRE_TRIPPED = false;
       BOOSTER1_SHUTDOWN_TIME = millis();
     }
-  } else if (BOOST1_AMPS <= (CURRENT_LIMIT + .01)) {
+  } 
+  else if (BOOST1_AMPS <= (CURRENT_LIMIT + .01)) {
     IS_POWER1_ULTRA_SLOW_PRE_TRIPPED = false;
   }
 
-  // Booster 2 Give 10% Weight To New Readings To Filter Noise
+  // Booster 2
   
-  for (int i=0; i < 10; i++) {
-    BOOST2_CURRENT = BOOST2_CURRENT + analogRead(C_SENSE2_PIN);
+   BOOST2_FILTERED.update();
+
+  // Serial.print("     ");
+  // Serial.print(BOOST2_FILTERED.getValue());
+  // Serial.print("     ");
+
+  BOOST2_CURRENT = BOOST2_FILTERED.getValue() - BOOST2_CSENSE_OFFSET;
+  BOOST2_AMPS = BOOSTER2_CSENSE_MOD * ((BOOST2_CURRENT * .004887) * 2.5767); //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
+
+  BOOST2_CURRENT_RAW = analogRead(C_SENSE2_PIN) - BOOST2_CSENSE_OFFSET;
+  BOOST2_AMPS_RAW = BOOSTER2_CSENSE_MOD * ((BOOST2_CURRENT_RAW * .004887) * 2.5767); //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
+
+  if (BOOST2_AMPS <= 0.04) {
+    BOOST2_AMPS = 0.0;
   }
-  BOOST2_CURRENT = BOOST2_CURRENT/10;
-  BOOST2_AMPS = ((BOOST2_CURRENT / 204.8) * 2.58);  //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
-  
+
+  if (BOOST2_AMPS_RAW <= 0.04) {
+    BOOST2_AMPS_RAW = 0.0;
+  }
+
   // Stage 1
   
-  if (BOOST2_AMPS >= (FAST_BLOW_LIMIT + .01)) {
-    if(IS_POWER2_ULTRA_PRE_TRIPPED == false){
-      BOOST2_TIMER = millis();
-      IS_POWER2_ULTRA_PRE_TRIPPED = true;
-    }
-    time2 = millis();
-    if ((time2 - BOOST2_TIMER) >= ULTRA_FAST_TIME){
-      turnPower2Off();
-      IS_POWER2_TRIPPED = true;
-      IS_POWER2_ULTRA_TRIPPED = true;
-      IS_POWER2_ULTRA_PRE_TRIPPED = false;
-      BOOSTER2_SHUTDOWN_TIME = millis();
-    }
-  } else if (BOOST2_AMPS <= (FAST_BLOW_LIMIT + .01)) {
-    IS_POWER2_ULTRA_PRE_TRIPPED = false;
+  if (BOOST2_AMPS_RAW >= (FAST_BLOW_LIMIT + .01)) {
+    turnPower2Off();
+    IS_POWER2_TRIPPED = true;
+    IS_POWER2_ULTRA_TRIPPED = true;
+    BOOSTER1_SHUTDOWN_TIME = millis();
   } 
     
     // Stage 2
     
-    else   if (BOOST2_AMPS >= (SLOW_BLOW_LIMIT + .01)) {
+  else if (BOOST2_AMPS >= (SLOW_BLOW_LIMIT + .01)) {
     if(IS_POWER2_FAST_PRE_TRIPPED == false){
       BOOST2_TIMER = millis();
       IS_POWER2_FAST_PRE_TRIPPED = true;
     }
     time2 = millis();
-    if ((time2 - BOOST2_TIMER) >= FAST_BLOW_TIME){
+    if ((time1 - BOOST2_TIMER) >= FAST_BLOW_TIME){
       turnPower2Off();
       IS_POWER2_TRIPPED = true;
       IS_POWER2_FAST_TRIPPED = true;
       IS_POWER2_FAST_PRE_TRIPPED = false;
       BOOSTER2_SHUTDOWN_TIME = millis();
     }
-  } else if (BOOST2_AMPS <= (SLOW_BLOW_LIMIT + .01)) {
+  } 
+  else if (BOOST2_AMPS <= (SLOW_BLOW_LIMIT + .01)) {
     IS_POWER2_FAST_PRE_TRIPPED = false;
   } 
   
     // Stage 3
 
-    else if (BOOST2_AMPS >= (ULTRA_SLOW_BLOW_LIMIT + .01)) {
+  else if (BOOST2_AMPS >= (ULTRA_SLOW_BLOW_LIMIT + .01)) {
     if(IS_POWER2_SLOW_PRE_TRIPPED == false){
       BOOST2_TIMER = millis();
       IS_POWER2_SLOW_PRE_TRIPPED = true;
@@ -585,13 +627,14 @@ void loop() {
       IS_POWER2_SLOW_PRE_TRIPPED = false;
       BOOSTER2_SHUTDOWN_TIME = millis();
     }
-  } else if (BOOST2_AMPS <= (ULTRA_SLOW_BLOW_LIMIT + .01)) {
+  } 
+  else if (BOOST2_AMPS <= (ULTRA_SLOW_BLOW_LIMIT + .01)) {
     IS_POWER2_SLOW_PRE_TRIPPED = false;
   } 
   
     // Stage 4
     
-    else  if (BOOST2_AMPS >= (CURRENT_LIMIT + .01)) {
+  else  if (BOOST2_AMPS >= (CURRENT_LIMIT + .01)) {
     if(IS_POWER2_ULTRA_SLOW_PRE_TRIPPED == false){
       BOOST2_TIMER = millis();
       IS_POWER2_ULTRA_SLOW_PRE_TRIPPED = true;
@@ -604,7 +647,8 @@ void loop() {
       IS_POWER2_ULTRA_SLOW_PRE_TRIPPED = false;
       BOOSTER2_SHUTDOWN_TIME = millis();
     }
-  } else if (BOOST2_AMPS <= (CURRENT_LIMIT + .01)) {
+  } 
+  else if (BOOST2_AMPS <= (CURRENT_LIMIT + .01)) {
     IS_POWER2_ULTRA_SLOW_PRE_TRIPPED = false;
   }
 
@@ -725,42 +769,29 @@ void loop() {
 
   // Check For Railsync Activity And Turn Off Or ON Track Power Depending On Activity After So Many Seconds
 
-  RPWM_DETECT = digitalRead(RPWM_DETECT_PIN);
-  if (RPWM_LAST != RPWM_DETECT) {
-    RPWM_TIMER_ACTIVE = false;
-    RPWM_TIMER = 0;
-    if ((BOOST1_ENABLED == false) && (BOOST1_ENABLED == false) && (MICRO_PWR == HIGH) && (IS_POWER1_TRIPPED == false) && (IS_POWER2_TRIPPED == false)) {
-      if (RPWM_RX_TIMER_ACTIVE == false) {
-        RPWM_RX_TIMER = millis();
-        RPWM_RX_TIMER_ACTIVE = true;
-        RPWM_RX_COUNT = 0;
-      }
-      RPWM_RX_COUNT = RPWM_RX_COUNT + 1;
-      if (((millis() - RPWM_RX_TIMER) >= RPWM_TIMER_LIMIT) && (RPWM_RX_TIMER_ACTIVE == true)) {
-        if (RPWM_RX_COUNT >= RPWM_SIG_EDGES) {
-          turnPowerOn();
-        }
-        if (RPWM_RX_COUNT < RPWM_SIG_EDGES) {
-          RPWM_RX_TIMER_ACTIVE = false;
-        }
-      }
-    }
-  }  
-  if (RPWM_LAST == RPWM_DETECT) {
-    if (RPWM_TIMER_ACTIVE == false) {
-      RPWM_TIMER = millis();
-      RPWM_TIMER_ACTIVE = true;
-      RPWM_COUNT = 0;
-    } 
-    RPWM_COUNT = RPWM_COUNT +1;
-    if ((RPWM_TIMER_ACTIVE == true) && ((millis() - RPWM_TIMER) >= RPWM_TIMER_LIMIT)) {
-      if (RPWM_RX_COUNT <= RPWM_SIG_EDGES) {
-        turnPowerOff();
-        RPWM_TIMER_ACTIVE = false;
-        RPWM_TIMER = 0;
-        RPWM_COUNT = 0;
-      }
-    }
-  }
-  RPWM_LAST = RPWM_DETECT;
+  // if (RPWM_TIMER_ACTIVE == false){
+  //   RPWM_TIMER = millis();
+  //   RPWM_COUNT = 0;
+  //   RPWM_TIMER_ACTIVE = true;
+  // } 
+  // RPWM_DETECT = digitalRead(RPWM_DETECT_PIN);
+  // if ((millis() - RPWM_TIMER) <= RPWM_TIMER_LIMIT) {
+  //   if (RPWM_LAST != RPWM_DETECT) {
+  //     RPWM_COUNT = ++RPWM_COUNT;
+  //     Serial.print("Hello");
+  //     Serial.print(RPWM_COUNT);
+  //   }
+  // }
+  // if ((millis() - RPWM_TIMER) > (RPWM_TIMER_LIMIT)) {
+  //   if ((RPWM_COUNT >= RPWM_SIG_EDGES) && (MICRO_PWR == HIGH) && (IS_POWER1_TRIPPED == false) && (IS_POWER2_TRIPPED == false)) {
+  //     turnPowerOn();
+  //   }
+  //   if (RPWM_COUNT <= RPWM_SIG_EDGES) {
+  //     turnPowerOff();
+  //   } 
+  //   RPWM_TIMER_ACTIVE = false;   
+  // }
+
+  // RPWM_LAST = RPWM_DETECT;
+
 }
