@@ -44,18 +44,18 @@ float BOOSTER1_SOFTSTART_MULT = 2;
 float BOOSTER2_SOFTSTART_MULT = 11;
 float BOOSTER1_SOFTSTART_TIME = 5;
 float BOOSTER2_SOFTSTART_TIME = 5;
-
+float BOOST1_CSENSE_OFFSET = 270;
+float BOOST2_CSENSE_OFFSET = 270;
 float BOOSTER1_CSENSE_MOD = 2.42;
 float BOOSTER2_CSENSE_MOD = 2.42;
+
+
 int BOOSTER1_REBOOT_COUNT = 0;
 int BOOSTER2_REBOOT_COUNT = 0;
-int BOOSTER1_SOFTSTART_COUNTER = 0;
-int BOOSTER2_SOFTSTART_COUNTER = 0;
 int RPWM_RX_COUNT = 0;
 int RPWM_COUNT = 0;
 int RPWM_DETECT = 1;
 bool RPWM_RX_TIMER_ACTIVE = false;
-bool PWR_OVERIDE = false;
 bool BOOST1_ENABLED = false;
 bool IS_POWER1_TRIPPED = false;
 bool IS_POWER1_ULTRA_TRIPPED = false;
@@ -82,8 +82,6 @@ float BOOST1_AMPS = 0;
 float BOOST2_AMPS = 0;
 float BOOST1_AMPS_RAW = 0;
 float BOOST2_AMPS_RAW = 0;
-float BOOST1_CSENSE_OFFSET = 270;
-float BOOST2_CSENSE_OFFSET = 270;
 float BOOST1_CURRENT_RAW = 0;
 float BOOST2_CURRENT_RAW = 0;
 int RPWM_LAST = 1;
@@ -460,13 +458,13 @@ void loop() {
 
   // Detect Power Button High, Makes Sure Not To Turn On While Tripped, Only Tries To Power On If Not Tried Within A Set Period, And Only Activates On Switch Change From Off To On
 
-  if ((MICRO_PWR == HIGH) && (IS_POWER1_TRIPPED == false) && ((millis() - BOOSTER1_LAST_POWER_ON) >= 250 ) && (PWR_OVERIDE == false) && (MICRO_PWR != POWER_BTN_LAST)) {
+  if ((MICRO_PWR == HIGH) && (IS_POWER1_TRIPPED == false) && ((millis() - BOOSTER1_LAST_POWER_ON) >= 250 ) && (MICRO_PWR != POWER_BTN_LAST)) {
     turnPower1On();
   }
 
  // Detect Power Button High, Makes Sure Not To Turn On While Tripped, Only Tries To Power On If Not Tried Within A Set Period, And Only Activates On Switch Change From Off To On
 
-  if ((MICRO_PWR == HIGH) && (IS_POWER2_TRIPPED == false) && ((millis() - BOOSTER2_LAST_POWER_ON) >= 250 ) && (PWR_OVERIDE == false) && (MICRO_PWR != POWER_BTN_LAST)) {
+  if ((MICRO_PWR == HIGH) && (IS_POWER2_TRIPPED == false) && ((millis() - BOOSTER2_LAST_POWER_ON) >= 250 ) && (MICRO_PWR != POWER_BTN_LAST)) {
     turnPower2On();
   }
 
