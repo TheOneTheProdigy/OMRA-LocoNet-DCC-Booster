@@ -26,7 +26,7 @@ float ULTRA_SLOW_BLOW_LIMIT = 4.2; // Upper Limit Of The Ultra Slow Blow Region
 float ULTRA_SLOW_BLOW_TIME = 30000; // Milliseconds To Trip Ultra Slow Blow Fuse
 float SLOW_BLOW_LIMIT = 4.9; // Upper Limit Of The Slow Blow Region In Amps
 float SLOW_BLOW_TIME = 15000; // Milliseconds To Trip Slow Blow Fuse
-float FAST_BLOW_LIMIT = 5.1; // Upper Limit Of The Fast Blow Region In Amps. Anything Above This Will Blow Ultra Fast
+float FAST_BLOW_LIMIT = 1.1; // Upper Limit Of The Fast Blow Region In Amps. Anything Above This Will Blow Ultra Fast
 float FAST_BLOW_TIME = 250; // Milliseconds To Trip Fast Blow Fuse
 float BOOSTER_REBOOT_TIME = 2000; // Milliseconds To Wait 
 float BOOSTER_TRIPPED_COUNTER_RESET = 65000; // Milliseconds To Go Without A Current Trip To Reset Trip Counter Must Be Higher Than Longest Current Cutout Duration Of 60 Seconds
@@ -70,6 +70,7 @@ float BOOST1_AMPS = 0;
 float BOOST2_AMPS = 0;
 float BOOST1_CSENSE_OFFSET = 275;
 float BOOST2_CSENSE_OFFSET = 0;
+float BOOST1_CURRENT_RAW = 0;
 int RPWM_LAST = 1;
 
 unsigned long time1;
@@ -440,7 +441,7 @@ void loop() {
   
 
 
-  Booster 1 Give 10% Weight To New Readings To Filter Noise
+  // Booster 1 Give 10% Weight To New Readings To Filter Noise
   
   BOOST1_CURRENT_RAW = analogRead(C_SENSE1_PIN);
 
