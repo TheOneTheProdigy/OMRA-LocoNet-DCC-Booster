@@ -436,7 +436,7 @@ void loop() {
     turnPower2On();
   }
 
-  Check Current Of Boosters 1 and 2
+ // Check Current Of Boosters 1 and 2
   
 
 
