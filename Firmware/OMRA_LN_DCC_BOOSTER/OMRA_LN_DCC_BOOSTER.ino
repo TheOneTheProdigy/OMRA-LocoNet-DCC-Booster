@@ -769,29 +769,29 @@ void loop() {
 
   // Check For Railsync Activity And Turn Off Or ON Track Power Depending On Activity After So Many Seconds
 
-  // if (RPWM_TIMER_ACTIVE == false){
-  //   RPWM_TIMER = millis();
-  //   RPWM_COUNT = 0;
-  //   RPWM_TIMER_ACTIVE = true;
-  // } 
-  // RPWM_DETECT = digitalRead(RPWM_DETECT_PIN);
-  // if ((millis() - RPWM_TIMER) <= RPWM_TIMER_LIMIT) {
-  //   if (RPWM_LAST != RPWM_DETECT) {
-  //     RPWM_COUNT = ++RPWM_COUNT;
-  //     Serial.print("Hello");
-  //     Serial.print(RPWM_COUNT);
-  //   }
-  // }
-  // if ((millis() - RPWM_TIMER) > (RPWM_TIMER_LIMIT)) {
-  //   if ((RPWM_COUNT >= RPWM_SIG_EDGES) && (MICRO_PWR == HIGH) && (IS_POWER1_TRIPPED == false) && (IS_POWER2_TRIPPED == false)) {
-  //     turnPowerOn();
-  //   }
-  //   if (RPWM_COUNT <= RPWM_SIG_EDGES) {
-  //     turnPowerOff();
-  //   } 
-  //   RPWM_TIMER_ACTIVE = false;   
-  // }
+  if (RPWM_TIMER_ACTIVE == false){
+    RPWM_TIMER = millis();
+    RPWM_COUNT = 0;
+    RPWM_TIMER_ACTIVE = true;
+  } 
+  RPWM_DETECT = digitalRead(RPWM_DETECT_PIN);
+  if ((millis() - RPWM_TIMER) <= RPWM_TIMER_LIMIT) {
+    if (RPWM_LAST != RPWM_DETECT) {
+      RPWM_COUNT = ++RPWM_COUNT;
+      // Serial.print("Hello");
+      // Serial.print(RPWM_COUNT);
+    }
+  }
+  if ((millis() - RPWM_TIMER) > (RPWM_TIMER_LIMIT)) {
+    if ((RPWM_COUNT >= RPWM_SIG_EDGES) && (MICRO_PWR == HIGH) && (IS_POWER1_TRIPPED == false) && (IS_POWER2_TRIPPED == false)) {
+      turnPowerOn();
+    }
+    if (RPWM_COUNT <= RPWM_SIG_EDGES) {
+      turnPowerOff();
+    } 
+    RPWM_TIMER_ACTIVE = false;   
+  }
 
-  // RPWM_LAST = RPWM_DETECT;
+  RPWM_LAST = RPWM_DETECT;
 
 }
