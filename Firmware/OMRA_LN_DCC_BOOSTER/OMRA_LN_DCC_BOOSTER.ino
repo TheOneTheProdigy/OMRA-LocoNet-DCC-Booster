@@ -396,12 +396,12 @@ void turnPowerOff() {
 }
 
 void turnPower1On() {
-  for ( int x = 0; x < BOOSTER1_SOFTSTART_COUNT; x++ ) {
-  digitalWrite(EN1_PIN, HIGH);
-  delay(BOOSTER1_SOFTSTART_TIME);
-  digitalWrite(EN1_PIN, LOW);
-  delay(BOOSTER1_SOFTSTART_TIME * BOOSTER1_SOFTSTART_MULT);
-  }
+  // for ( int x = 0; x < BOOSTER1_SOFTSTART_COUNT; x++ ) {
+  // digitalWrite(EN1_PIN, HIGH);
+  // delay(BOOSTER1_SOFTSTART_TIME);
+  // digitalWrite(EN1_PIN, LOW);
+  // delay(BOOSTER1_SOFTSTART_TIME * BOOSTER1_SOFTSTART_MULT);
+  // }
 
   digitalWrite(EN1_PIN, HIGH);
   BOOST1_ENABLED = true;
@@ -417,12 +417,13 @@ void turnPower1On() {
 }
 
 void turnPower2On() {
-    for ( int x = 0; x < BOOSTER2_SOFTSTART_COUNT; x++ ) {
-  digitalWrite(EN2_PIN, HIGH);
-  delay(BOOSTER2_SOFTSTART_TIME);
-  digitalWrite(EN2_PIN, LOW);
-  delay(BOOSTER2_SOFTSTART_TIME * BOOSTER2_SOFTSTART_MULT);
-  }
+  //   for ( int x = 0; x < BOOSTER2_SOFTSTART_COUNT; x++ ) {
+  // digitalWrite(EN2_PIN, HIGH);
+  // delay(BOOSTER2_SOFTSTART_TIME);
+  // digitalWrite(EN2_PIN, LOW);
+  // delay(BOOSTER2_SOFTSTART_TIME * BOOSTER2_SOFTSTART_MULT);
+  // }
+  
   digitalWrite(EN2_PIN, HIGH);
   BOOST2_ENABLED = true;
   BOOSTER2_LAST_POWER_ON = millis();
