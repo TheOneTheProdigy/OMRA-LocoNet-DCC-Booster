@@ -38,16 +38,20 @@ float BOOSTER_TRIPPED_COUNTER_RESET = 65000; // Milliseconds To Go Without A Cur
 float RPWM_TIMER_LIMIT = 2500; // Milliseconds To Go Without Valid Railsync Commands Before Boosters Shutdown 
 int RPWM_SIG_EDGES = 10; // Edges To Trigger RailSync Active Or Not Within RPWM_TRIGGER_LIMIT Timeframe
 int POWER_BTN_LAST = 0; // A Zero Here Will Power Up The Track On Startup. A 1 Here Will Power Up With Track Power Off
+bool SOFTSTART1_ENABLED = true;
+bool SOFTSTART2_ENABLED = true;
 int BOOSTER1_SOFTSTART_COUNT = 20;
 int BOOSTER2_SOFTSTART_COUNT = 20;
-float BOOSTER1_SOFTSTART_MULT = 2;
-float BOOSTER2_SOFTSTART_MULT = 2;
-float BOOSTER1_SOFTSTART_TIME = 5;
-float BOOSTER2_SOFTSTART_TIME = 5;
-float BOOST1_CSENSE_OFFSET = 280;
-float BOOST2_CSENSE_OFFSET = 280;
-float BOOSTER1_CSENSE_MOD = 2.42;
-float BOOSTER2_CSENSE_MOD = 2.42;
+float BOOSTER1_SOFTSTART_MULT = 1;
+float BOOSTER2_SOFTSTART_MULT = 1;
+float BOOSTER1_SOFTSTART_TIME = 2;
+float BOOSTER2_SOFTSTART_TIME = 2;
+float BOOST1_CSENSE_OFFSET = 275;
+float BOOST2_CSENSE_OFFSET = 275;
+float BOOSTER1_CSENSE_MOD = 2.5;
+float BOOSTER2_CSENSE_MOD = 2.5;
+bool PRINT_BOOST_OFFSET = false;
+float PRINT_BOOST_DELAY_TIME = 2000;
 
 
 int BOOSTER1_REBOOT_COUNT = 0;
@@ -85,6 +89,7 @@ float BOOST2_AMPS_RAW = 0;
 float BOOST1_CURRENT_RAW = 0;
 float BOOST2_CURRENT_RAW = 0;
 int RPWM_LAST = 1;
+float PRINT_BOOST_LAST_TIME = 0;
 
 FilteredAnalog<> BOOST1_FILTERED = C_SENSE1_PIN; // Booster 1 Current Sensing Pin
 FilteredAnalog<> BOOST2_FILTERED = C_SENSE2_PIN; // Booster 2 Current Sensing Pin
@@ -316,10 +321,11 @@ const unsigned char ALARM2ICON [] PROGMEM = {
 // Start Setup
 
 void setup() {
-  
-  // Start Serial
 
-  Serial.begin(9600);
+  if (PRINT_BOOST_OFFSET == true) {
+    // Start Serial
+    Serial.begin(9600);
+  }
 
   // Setup IO Pins
   pinMode(MICRO_PWR_PIN, INPUT_PULLUP); 
@@ -396,12 +402,17 @@ void turnPowerOff() {
 }
 
 void turnPower1On() {
-  // for ( int x = 0; x < BOOSTER1_SOFTSTART_COUNT; x++ ) {
-  // digitalWrite(EN1_PIN, HIGH);
-  // delay(BOOSTER1_SOFTSTART_TIME);
-  // digitalWrite(EN1_PIN, LOW);
-  // delay(BOOSTER1_SOFTSTART_TIME * BOOSTER1_SOFTSTART_MULT);
-  // }
+  // SoftStart
+  if (SOFTSTART1_ENABLED == true) {
+    if (BOOST1_ENABLED == false) {
+      for ( int x = 0; x < BOOSTER1_SOFTSTART_COUNT; x++ ) {
+        digitalWrite(EN1_PIN, HIGH);
+        delay(BOOSTER1_SOFTSTART_TIME);
+        digitalWrite(EN1_PIN, LOW);
+        delay(BOOSTER1_SOFTSTART_TIME * BOOSTER1_SOFTSTART_MULT);
+      }
+    }
+  }
 
   digitalWrite(EN1_PIN, HIGH);
   BOOST1_ENABLED = true;
@@ -417,12 +428,17 @@ void turnPower1On() {
 }
 
 void turnPower2On() {
-  //   for ( int x = 0; x < BOOSTER2_SOFTSTART_COUNT; x++ ) {
-  // digitalWrite(EN2_PIN, HIGH);
-  // delay(BOOSTER2_SOFTSTART_TIME);
-  // digitalWrite(EN2_PIN, LOW);
-  // delay(BOOSTER2_SOFTSTART_TIME * BOOSTER2_SOFTSTART_MULT);
-  // }
+  // SoftStart
+  if (SOFTSTART2_ENABLED == true) {
+    if (BOOST2_ENABLED == false) {
+      for ( int x = 0; x < BOOSTER2_SOFTSTART_COUNT; x++ ) {
+        digitalWrite(EN2_PIN, HIGH);
+        delay(BOOSTER2_SOFTSTART_TIME);
+        digitalWrite(EN2_PIN, LOW);
+        delay(BOOSTER2_SOFTSTART_TIME * BOOSTER2_SOFTSTART_MULT);
+      }
+    }
+  }
 
   digitalWrite(EN2_PIN, HIGH);
   BOOST2_ENABLED = true;
@@ -474,10 +490,6 @@ void loop() {
   // Booster 1
 
   BOOST1_FILTERED.update();
-
-  // Serial.print("     ");
-  // Serial.print(BOOST1_FILTERED.getValue());
-  // Serial.print("     ");
 
   BOOST1_CURRENT = BOOST1_FILTERED.getValue() - BOOST1_CSENSE_OFFSET;
   BOOST1_AMPS = BOOSTER1_CSENSE_MOD * ((BOOST1_CURRENT * .004887) * 2.5767); //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
@@ -564,11 +576,7 @@ void loop() {
 
   // Booster 2
   
-   BOOST2_FILTERED.update();
-
-  // Serial.print("     ");
-  // Serial.print(BOOST2_FILTERED.getValue());
-  // Serial.print("     ");
+  BOOST2_FILTERED.update();
 
   BOOST2_CURRENT = BOOST2_FILTERED.getValue() - BOOST2_CSENSE_OFFSET;
   BOOST2_AMPS = BOOSTER2_CSENSE_MOD * ((BOOST2_CURRENT * .004887) * 2.5767); //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
@@ -794,5 +802,18 @@ void loop() {
   }
 
   RPWM_LAST = RPWM_DETECT;
+
+  // Print Offset Values For Initial Config
+  
+  if (PRINT_BOOST_OFFSET == true) {
+    if (millis() - PRINT_BOOST_LAST_TIME >= PRINT_BOOST_DELAY_TIME) {
+      Serial.println();
+      Serial.print("B1 ");
+      Serial.print(BOOST1_FILTERED.getValue());
+      Serial.print(" B2 ");
+      Serial.print(BOOST2_FILTERED.getValue());
+      PRINT_BOOST_LAST_TIME = millis();
+    }
+  }
 
 }
