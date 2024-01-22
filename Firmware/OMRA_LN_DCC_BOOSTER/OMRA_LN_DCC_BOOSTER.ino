@@ -31,25 +31,24 @@ float ULTRA_SLOW_BLOW_TIME = 30000; // Milliseconds To Trip Ultra Slow Blow Fuse
 float SLOW_BLOW_LIMIT = 4.9; // Upper Limit Of The Slow Blow Region In Amps
 float SLOW_BLOW_TIME = 15000; // Milliseconds To Trip Slow Blow Fuse
 float FAST_BLOW_LIMIT = 5.1; // Upper Limit Of The Fast Blow Region In Amps. Anything Above This Will Blow Ultra Fast
-float FAST_BLOW_TIME = 250; // Milliseconds To Trip Fast Blow Fuse
-float BOOSTER_SOFT_START_PULSE_TIME = 100; // Milliseconds To Pulse 
+float FAST_BLOW_TIME = 250; // Milliseconds To Trip Fast Blow Fuses
 float BOOSTER_REBOOT_TIME = 2000; // Milliseconds To Wait 
 float BOOSTER_TRIPPED_COUNTER_RESET = 65000; // Milliseconds To Go Without A Current Trip To Reset Trip Counter Must Be Higher Than Longest Current Cutout Duration Of 60 Seconds
-float RPWM_TIMER_LIMIT = 2500; // Milliseconds To Go Without Valid Railsync Commands Before Boosters Shutdown 
-int RPWM_SIG_EDGES = 10; // Edges To Trigger RailSync Active Or Not Within RPWM_TRIGGER_LIMIT Timeframe
+float RPWM_TIMER_LIMIT = 1500; // Milliseconds To Go Without Valid Railsync Commands Before Boosters Shutdown 
+int RPWM_SIG_EDGES = 5; // Edges To Trigger RailSync Active Or Not Within RPWM_TRIGGER_LIMIT Timeframe
 int POWER_BTN_LAST = 0; // A Zero Here Will Power Up The Track On Startup. A 1 Here Will Power Up With Track Power Off
 bool SOFTSTART1_ENABLED = true;
 bool SOFTSTART2_ENABLED = true;
-int BOOSTER1_SOFTSTART_COUNT = 20;
-int BOOSTER2_SOFTSTART_COUNT = 20;
-float BOOSTER1_SOFTSTART_MULT = 1;
-float BOOSTER2_SOFTSTART_MULT = 1;
-float BOOSTER1_SOFTSTART_TIME = 2;
-float BOOSTER2_SOFTSTART_TIME = 2;
-float BOOST1_CSENSE_OFFSET = 275;
-float BOOST2_CSENSE_OFFSET = 275;
-float BOOSTER1_CSENSE_MOD = 2.5;
-float BOOSTER2_CSENSE_MOD = 2.5;
+int BOOSTER1_SOFTSTART_COUNT = 10;
+int BOOSTER2_SOFTSTART_COUNT = 10;
+float BOOSTER1_SOFTSTART_MULT = 2;
+float BOOSTER2_SOFTSTART_MULT = 2;
+float BOOSTER1_SOFTSTART_TIME = 5;
+float BOOSTER2_SOFTSTART_TIME = 5;
+float BOOST1_CSENSE_OFFSET = 410;
+float BOOST2_CSENSE_OFFSET = 410;
+float BOOSTER1_CSENSE_MOD = 3.4;
+float BOOSTER2_CSENSE_MOD = 3.4;
 bool PRINT_BOOST_OFFSET = false;
 float PRINT_BOOST_DELAY_TIME = 2000;
 
@@ -492,16 +491,16 @@ void loop() {
   BOOST1_FILTERED.update();
 
   BOOST1_CURRENT = BOOST1_FILTERED.getValue() - BOOST1_CSENSE_OFFSET;
-  BOOST1_AMPS = BOOSTER1_CSENSE_MOD * ((BOOST1_CURRENT * .004887) * 2.5767); //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
+  BOOST1_AMPS = BOOSTER1_CSENSE_MOD * ((BOOST1_CURRENT * .0048875855327468) * 1.628353304598108); //  8500 to 1 Current Sense 1A Should Be .117647ma x 5.22K Resistance = .61411734 Volts Per A 1/.61411734 = 1.628353304598108 Amps Per Volt
 
   BOOST1_CURRENT_RAW = analogRead(C_SENSE1_PIN) - BOOST1_CSENSE_OFFSET;
-  BOOST1_AMPS_RAW = BOOSTER1_CSENSE_MOD * ((BOOST1_CURRENT_RAW * .004887) * 2.5767); //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
+  BOOST1_AMPS_RAW = BOOSTER1_CSENSE_MOD * ((BOOST1_CURRENT_RAW * .0048875855327468) * 1.628353304598108); //  8500 to 1 Current Sense 1A Should Be .117647ma x 5.22K Resistance = .61411734 Volts Per A 1/.61411734 = 1.628353304598108 Amps Per Volt
 
-  if (BOOST1_AMPS <= 0.04) {
+  if (BOOST1_AMPS <= 0.09) {
     BOOST1_AMPS = 0.0;
   }
 
-  if (BOOST1_AMPS_RAW <= 0.04) {
+  if (BOOST1_AMPS_RAW <= 0.09) {
     BOOST1_AMPS_RAW = 0.0;
   }
 
@@ -579,16 +578,16 @@ void loop() {
   BOOST2_FILTERED.update();
 
   BOOST2_CURRENT = BOOST2_FILTERED.getValue() - BOOST2_CSENSE_OFFSET;
-  BOOST2_AMPS = BOOSTER2_CSENSE_MOD * ((BOOST2_CURRENT * .004887) * 2.5767); //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
+  BOOST2_AMPS = BOOSTER2_CSENSE_MOD * ((BOOST2_CURRENT * .0048875855327468) * 1.628353304598108); //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
 
   BOOST2_CURRENT_RAW = analogRead(C_SENSE2_PIN) - BOOST2_CSENSE_OFFSET;
-  BOOST2_AMPS_RAW = BOOSTER2_CSENSE_MOD * ((BOOST2_CURRENT_RAW * .004887) * 2.5767); //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
+  BOOST2_AMPS_RAW = BOOSTER2_CSENSE_MOD * ((BOOST2_CURRENT_RAW * .0048875855327468) * 1.628353304598108); //  8500 to 1 Current Sense 1A Should Be .1176ma x 3.3K Resistance = .38808 Volts Per A 1/.38808 = 2.5767 Amps Per Volt
 
-  if (BOOST2_AMPS <= 0.04) {
+  if (BOOST2_AMPS <= 0.09) {
     BOOST2_AMPS = 0.0;
   }
 
-  if (BOOST2_AMPS_RAW <= 0.04) {
+  if (BOOST2_AMPS_RAW <= 0.09) {
     BOOST2_AMPS_RAW = 0.0;
   }
 
@@ -787,8 +786,6 @@ void loop() {
   if ((millis() - RPWM_TIMER) <= RPWM_TIMER_LIMIT) {
     if (RPWM_LAST != RPWM_DETECT) {
       RPWM_COUNT = ++RPWM_COUNT;
-      // Serial.print("Hello");
-      // Serial.print(RPWM_COUNT);
     }
   }
   if ((millis() - RPWM_TIMER) > (RPWM_TIMER_LIMIT)) {
