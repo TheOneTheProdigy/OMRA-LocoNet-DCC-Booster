@@ -6,10 +6,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <Filters.h>
- 
-#include <AH/Hardware/FilteredAnalog.hpp>
-#include <AH/Timing/MillisMicrosTimer.hpp>
+#include "avdweb_AnalogReadFast.h"
 
 #define OLED_RESET 4
 #define SCREEN_WIDTH 128
@@ -26,12 +23,12 @@ int LN_TX_MICRO_PIN = 9; // Pin To Send LocoNet Packets To The LocoNet Buss
 int AR_RLY_PIN = 10; // Pin To Reverse Polarity Via External DPDT Relay With Opto Isolator
 
 float CURRENT_LIMIT = 3.5; // Constaint Current Limit in ma - Fast Trip Current Should Be 140 Percent Of This Value
-float ULTRA_SLOW_BLOW_LIMIT = 4.2; // Upper Limit Of The Ultra Slow Blow Region
+float ULTRA_SLOW_BLOW_LIMIT = 3.9; // Upper Limit Of The Ultra Slow Blow Region
 float ULTRA_SLOW_BLOW_TIME = 30000; // Milliseconds To Trip Ultra Slow Blow Fuse
-float SLOW_BLOW_LIMIT = 4.9; // Upper Limit Of The Slow Blow Region In Amps
+float SLOW_BLOW_LIMIT = 4.5; // Upper Limit Of The Slow Blow Region In Amps
 float SLOW_BLOW_TIME = 15000; // Milliseconds To Trip Slow Blow Fuse
-float FAST_BLOW_LIMIT = 5.1; // Upper Limit Of The Fast Blow Region In Amps. Anything Above This Will Blow Ultra Fast
-float FAST_BLOW_TIME = 250; // Milliseconds To Trip Fast Blow Fuses
+float FAST_BLOW_LIMIT = 4.9; // Upper Limit Of The Fast Blow Region In Amps. Anything Above This Will Blow Ultra Fast
+float FAST_BLOW_TIME = 1000; // Milliseconds To Trip Fast Blow Fuses
 float BOOSTER_REBOOT_TIME = 2000; // Milliseconds To Wait 
 float BOOSTER_TRIPPED_COUNTER_RESET = 65000; // Milliseconds To Go Without A Current Trip To Reset Trip Counter Must Be Higher Than Longest Current Cutout Duration Of 60 Seconds
 float RPWM_TIMER_LIMIT = 2000; // Milliseconds To Go Without Valid Railsync Commands Before Boosters Shutdown 
@@ -45,14 +42,16 @@ float BOOSTER1_SOFTSTART_MULT = 2;
 float BOOSTER2_SOFTSTART_MULT = 2;
 float BOOSTER1_SOFTSTART_TIME = 5;
 float BOOSTER2_SOFTSTART_TIME = 5;
-float BOOST1_CSENSE_OFFSET = 243;
-float BOOST2_CSENSE_OFFSET = 243;
+float BOOST1_CSENSE_OFFSET = 244;
+float BOOST2_CSENSE_OFFSET = 244;
 float BOOSTER1_CURRENT_RATIO = 19.5; // In Thosands To One EG. 8.5 = 8500:1
 float BOOSTER2_CURRENT_RATIO = 19.5; // In Thosands To One EG. 8.5 = 8500:1
 float BOOST1_R_VALUE = 3.3; // In KOHMS
 float BOOST2_R_VALUE = 3.3; // In KOHMS
 bool PRINT_BOOST_OFFSET = false;
-float PRINT_BOOST_DELAY_TIME = 2000;
+float PRINT_BOOST_DELAY_TIME = 2000; // Delay To Print Zero Values To Serial Monitor
+float PRINT_DISPLAY_DELAY_TIME = 500; // Refresh Screen Every 500 Micro Seconds
+
 
 
 int BOOSTER1_REBOOT_COUNT = 0;
@@ -85,15 +84,11 @@ float BOOST1_CURRENT = 0;
 float BOOST2_CURRENT = 0;
 float BOOST1_AMPS = 0;
 float BOOST2_AMPS = 0;
-float BOOST1_AMPS_RAW = 0;
-float BOOST2_AMPS_RAW = 0;
-float BOOST1_CURRENT_RAW = 0;
-float BOOST2_CURRENT_RAW = 0;
+float BOOST1_AMPS_AVG = 0;
+float BOOST2_AMPS_AVG = 0;
 int RPWM_LAST = 1;
 float PRINT_BOOST_LAST_TIME = 0;
-
-FilteredAnalog<> BOOST1_FILTERED = C_SENSE1_PIN; // Booster 1 Current Sensing Pin
-FilteredAnalog<> BOOST2_FILTERED = C_SENSE2_PIN; // Booster 2 Current Sensing Pin
+float LAST_PRINT_DISPLAY_TIME = 0;
 
 unsigned long time1;
 unsigned long time2;
@@ -335,8 +330,6 @@ void setup() {
   pinMode(LN_TX_MICRO_PIN, OUTPUT); 
   pinMode(AR_RLY_PIN, OUTPUT); 
 
-  FilteredAnalog<>::setupADC();
-
   // Start Display
 
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // here the 0x3c is the I2C address, check your i2c address if u have multiple devices.
@@ -490,114 +483,36 @@ void loop() {
 
   // Booster 1
 
-  BOOST1_FILTERED.update();
+  BOOST1_CURRENT = analogReadFast(C_SENSE1_PIN) - BOOST1_CSENSE_OFFSET;
+  BOOST1_AMPS = (((BOOST1_CURRENT * .0048828125) / BOOST1_R_VALUE) * BOOSTER1_CURRENT_RATIO);
+  BOOST1_AMPS_AVG = BOOST1_AMPS_AVG + (BOOST1_AMPS - BOOST1_AMPS_AVG) / 10;
 
-  BOOST1_CURRENT = BOOST1_FILTERED.getValue() - BOOST1_CSENSE_OFFSET;
-  BOOST1_AMPS = ((BOOST1_CURRENT * .0048828125) / BOOST1_R_VALUE) * BOOSTER1_CURRENT_RATIO; 
-
-  BOOST1_CURRENT_RAW = analogRead(C_SENSE1_PIN) - BOOST1_CSENSE_OFFSET;
-  BOOST1_AMPS_RAW = ((BOOST1_CURRENT * .0048828125) / BOOST1_R_VALUE) * BOOSTER1_CURRENT_RATIO;
-
-  if (BOOST1_AMPS <= 0.07) {
-    BOOST1_AMPS = 0.0;
-  }
-
-  if (BOOST1_AMPS_RAW <= 0.07) {
-    BOOST1_AMPS_RAW = 0.0;
+  if (BOOST1_AMPS_AVG <= 0.00) {
+    BOOST1_AMPS_AVG = 0.0;
   }
 
   // Stage 1
   
-  if (BOOST1_AMPS_RAW >= (FAST_BLOW_LIMIT + .01)) {
+  if (BOOST1_AMPS >= FAST_BLOW_LIMIT) {
     turnPower1Off();
     IS_POWER1_TRIPPED = true;
     IS_POWER1_ULTRA_TRIPPED = true;
     BOOSTER1_SHUTDOWN_TIME = millis();
   } 
-    
-    // Stage 2
-    
-  else if (BOOST1_AMPS >= (SLOW_BLOW_LIMIT + .01)) {
-    if(IS_POWER1_FAST_PRE_TRIPPED == false){
-      BOOST1_TIMER = millis();
-      IS_POWER1_FAST_PRE_TRIPPED = true;
-    }
-    time1 = millis();
-    if ((time1 - BOOST1_TIMER) >= FAST_BLOW_TIME){
-      turnPower1Off();
-      IS_POWER1_TRIPPED = true;
-      IS_POWER1_FAST_TRIPPED = true;
-      IS_POWER1_FAST_PRE_TRIPPED = false;
-      BOOSTER1_SHUTDOWN_TIME = millis();
-    }
-  } 
-  else if (BOOST1_AMPS <= (SLOW_BLOW_LIMIT + .01)) {
-    IS_POWER1_FAST_PRE_TRIPPED = false;
-  } 
-  
-    // Stage 3
-
-  else if (BOOST1_AMPS >= (ULTRA_SLOW_BLOW_LIMIT + .01)) {
-    if(IS_POWER1_SLOW_PRE_TRIPPED == false){
-      BOOST1_TIMER = millis();
-      IS_POWER1_SLOW_PRE_TRIPPED = true;
-    }
-    time1 = millis();
-    if ((time1 - BOOST1_TIMER) >= SLOW_BLOW_TIME){
-      turnPower1Off();
-      IS_POWER1_TRIPPED = true;
-      IS_POWER1_SLOW_TRIPPED = true;
-      IS_POWER1_SLOW_PRE_TRIPPED = false;
-      BOOSTER1_SHUTDOWN_TIME = millis();
-    }
-  } 
-  else if (BOOST1_AMPS <= (ULTRA_SLOW_BLOW_LIMIT + .01)) {
-    IS_POWER1_SLOW_PRE_TRIPPED = false;
-  } 
-  
-    // Stage 4
-    
-  else  if (BOOST1_AMPS >= (CURRENT_LIMIT + .01)) {
-    if(IS_POWER1_ULTRA_SLOW_PRE_TRIPPED == false){
-      BOOST1_TIMER = millis();
-      IS_POWER1_ULTRA_SLOW_PRE_TRIPPED = true;
-    }
-    time1 = millis();
-    if ((time1 - BOOST1_TIMER) >= ULTRA_SLOW_BLOW_TIME){
-      turnPower1Off();
-      IS_POWER1_TRIPPED = true;
-      IS_POWER1_ULTRA_SLOW_TRIPPED = true;
-      IS_POWER1_ULTRA_SLOW_PRE_TRIPPED = false;
-      BOOSTER1_SHUTDOWN_TIME = millis();
-    }
-  } 
-  else if (BOOST1_AMPS <= (CURRENT_LIMIT + .01)) {
-    IS_POWER1_ULTRA_SLOW_PRE_TRIPPED = false;
-  }
 
   // Booster 2
-  
-  BOOST2_FILTERED.update();
 
+  BOOST2_CURRENT = analogReadFast(C_SENSE2_PIN) - BOOST2_CSENSE_OFFSET;
+  BOOST2_AMPS = (((BOOST2_CURRENT * .0048828125) / BOOST2_R_VALUE) * BOOSTER2_CURRENT_RATIO);
+  BOOST2_AMPS_AVG = BOOST2_AMPS_AVG + (BOOST2_AMPS - BOOST2_AMPS_AVG) / 10;
 
-
-  BOOST2_CURRENT = BOOST2_FILTERED.getValue() - BOOST2_CSENSE_OFFSET;
-  BOOST2_AMPS = ((BOOST2_CURRENT * .0048828125) / BOOST2_R_VALUE) * BOOSTER2_CURRENT_RATIO; 
-
-  BOOST2_CURRENT_RAW = analogRead(C_SENSE2_PIN) - BOOST2_CSENSE_OFFSET;
-  BOOST2_AMPS_RAW = ((BOOST2_CURRENT * .0048828125) / BOOST2_R_VALUE) * BOOSTER2_CURRENT_RATIO; 
-
-  if (BOOST2_AMPS <= 0.07) {
-    BOOST2_AMPS = 0.0;
-  }
-
-  if (BOOST2_AMPS_RAW <= 0.07) {
-    BOOST2_AMPS_RAW = 0.0;
+  if (BOOST2_AMPS_AVG <= 0.00) {
+    BOOST2_AMPS_AVG = 0.0;
   }
 
   // Stage 1
   
-  if (BOOST2_AMPS_RAW >= (FAST_BLOW_LIMIT + .01)) {
+  if (BOOST2_AMPS >= FAST_BLOW_LIMIT) {
     turnPower2Off();
     IS_POWER2_TRIPPED = true;
     IS_POWER2_ULTRA_TRIPPED = true;
@@ -606,63 +521,7 @@ void loop() {
     
     // Stage 2
     
-  else if (BOOST2_AMPS >= (SLOW_BLOW_LIMIT + .01)) {
-    if(IS_POWER2_FAST_PRE_TRIPPED == false){
-      BOOST2_TIMER = millis();
-      IS_POWER2_FAST_PRE_TRIPPED = true;
-    }
-    time2 = millis();
-    if ((time1 - BOOST2_TIMER) >= FAST_BLOW_TIME){
-      turnPower2Off();
-      IS_POWER2_TRIPPED = true;
-      IS_POWER2_FAST_TRIPPED = true;
-      IS_POWER2_FAST_PRE_TRIPPED = false;
-      BOOSTER2_SHUTDOWN_TIME = millis();
-    }
-  } 
-  else if (BOOST2_AMPS <= (SLOW_BLOW_LIMIT + .01)) {
-    IS_POWER2_FAST_PRE_TRIPPED = false;
-  } 
   
-    // Stage 3
-
-  else if (BOOST2_AMPS >= (ULTRA_SLOW_BLOW_LIMIT + .01)) {
-    if(IS_POWER2_SLOW_PRE_TRIPPED == false){
-      BOOST2_TIMER = millis();
-      IS_POWER2_SLOW_PRE_TRIPPED = true;
-    }
-    time2 = millis();
-    if ((time2 - BOOST2_TIMER) >= SLOW_BLOW_TIME){
-      turnPower2Off();
-      IS_POWER2_TRIPPED = true;
-      IS_POWER2_SLOW_TRIPPED = true;
-      IS_POWER2_SLOW_PRE_TRIPPED = false;
-      BOOSTER2_SHUTDOWN_TIME = millis();
-    }
-  } 
-  else if (BOOST2_AMPS <= (ULTRA_SLOW_BLOW_LIMIT + .01)) {
-    IS_POWER2_SLOW_PRE_TRIPPED = false;
-  } 
-  
-    // Stage 4
-    
-  else  if (BOOST2_AMPS >= (CURRENT_LIMIT + .01)) {
-    if(IS_POWER2_ULTRA_SLOW_PRE_TRIPPED == false){
-      BOOST2_TIMER = millis();
-      IS_POWER2_ULTRA_SLOW_PRE_TRIPPED = true;
-    }
-    time2 = millis();
-    if ((time2 - BOOST2_TIMER) >= ULTRA_SLOW_BLOW_TIME){
-      turnPower2Off();
-      IS_POWER2_TRIPPED = true;
-      IS_POWER2_ULTRA_SLOW_TRIPPED = true;
-      IS_POWER2_ULTRA_SLOW_PRE_TRIPPED = false;
-      BOOSTER2_SHUTDOWN_TIME = millis();
-    }
-  } 
-  else if (BOOST2_AMPS <= (CURRENT_LIMIT + .01)) {
-    IS_POWER2_ULTRA_SLOW_PRE_TRIPPED = false;
-  }
 
   // Attempt To Repower The Boosters
 
@@ -672,19 +531,19 @@ void loop() {
     if (millis() - BOOSTER1_LAST_POWER_ON >= BOOSTER_TRIPPED_COUNTER_RESET) {
       BOOSTER1_REBOOT_COUNT = 0;
     }
-    if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= BOOSTER_REBOOT_TIME) && (BOOSTER1_REBOOT_COUNT <= 15)) {
+    else if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= BOOSTER_REBOOT_TIME) && (BOOSTER1_REBOOT_COUNT <= 15)) {
       turnPower1On();
       BOOSTER1_REBOOT_COUNT = BOOSTER1_REBOOT_COUNT + 1;
     }
-    if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*5)) && (BOOSTER1_REBOOT_COUNT <= 30)) {
+    else if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*5)) && (BOOSTER1_REBOOT_COUNT <= 30)) {
       turnPower1On();
       BOOSTER1_REBOOT_COUNT = BOOSTER1_REBOOT_COUNT + 1;
     }
-    if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*15)) && (BOOSTER1_REBOOT_COUNT <= 45)) {
+    else if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*15)) && (BOOSTER1_REBOOT_COUNT <= 45)) {
       turnPower1On();
       BOOSTER1_REBOOT_COUNT = BOOSTER1_REBOOT_COUNT + 1;
     }
-    if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*30)) && (BOOSTER1_REBOOT_COUNT <= 52)) {
+    else if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*30)) && (BOOSTER1_REBOOT_COUNT <= 52)) {
       turnPower1On();
       BOOSTER1_REBOOT_COUNT = BOOSTER1_REBOOT_COUNT + 1;
     }
@@ -696,19 +555,19 @@ void loop() {
     if (millis() - BOOSTER2_LAST_POWER_ON >= BOOSTER_TRIPPED_COUNTER_RESET) {
       BOOSTER2_REBOOT_COUNT = 0;
     }
-    if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= BOOSTER_REBOOT_TIME) && (BOOSTER2_REBOOT_COUNT <= 15)) {
+    else if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= BOOSTER_REBOOT_TIME) && (BOOSTER2_REBOOT_COUNT <= 15)) {
       turnPower2On();
       BOOSTER2_REBOOT_COUNT = BOOSTER2_REBOOT_COUNT + 1;
     }
-    if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*5)) && (BOOSTER2_REBOOT_COUNT <= 30)) {
+    else if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*5)) && (BOOSTER2_REBOOT_COUNT <= 30)) {
       turnPower2On();
       BOOSTER2_REBOOT_COUNT = BOOSTER2_REBOOT_COUNT + 1;
     }
-    if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*15)) && (BOOSTER2_REBOOT_COUNT <= 45)) {
+    else if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*15)) && (BOOSTER2_REBOOT_COUNT <= 45)) {
       turnPower2On();
       BOOSTER2_REBOOT_COUNT = BOOSTER2_REBOOT_COUNT + 1;
     }
-    if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*30)) && (BOOSTER2_REBOOT_COUNT <= 52)) {
+    else if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*30)) && (BOOSTER2_REBOOT_COUNT <= 52)) {
       turnPower2On();
       BOOSTER2_REBOOT_COUNT = BOOSTER2_REBOOT_COUNT + 1;
     }
@@ -716,64 +575,72 @@ void loop() {
 
   // Draw Display
 
-  display.clearDisplay(); // Clear Previous Display
+  if (millis() - LAST_PRINT_DISPLAY_TIME >= PRINT_DISPLAY_DELAY_TIME) {
 
-  // Display Icons In Yellow Bar
-  
-  if (BOOST1_ENABLED == true) {     // Booster 1 Enabled Icon
-    display.drawBitmap(0, 0, POWERICON, 16, 16, WHITE);
-  }
-  if (BOOST2_ENABLED == true) {     // Booster 2 Enabled Icon
-    display.drawBitmap(64, 0, POWERICON, 16, 16, WHITE);   
-  }
-  if (IS_POWER1_TRIPPED == true) {     // Booster 1 Overload Icon
-    display.drawBitmap(16, 0, OVERLOADICON, 16, 16, WHITE);   
-  }
-  if (IS_POWER2_TRIPPED == true) {     // Booster 2 Overload Icon
-    display.drawBitmap(80, 0, OVERLOADICON, 16, 16, WHITE);   
-  }
-  if (IS_POWER1_SLOW_PRE_TRIPPED == true) {     // Booster 1 Pre Slow Overload Icon
-    display.drawBitmap(32, 0, ALARM1ICON, 16, 16, WHITE);   
-  }
-  if (IS_POWER2_SLOW_PRE_TRIPPED == true) {     // Booster 2 Pre Slow Overload Icon
-    display.drawBitmap(96, 0, ALARM1ICON, 16, 16, WHITE);   
-  }
-  if (IS_POWER1_ULTRA_SLOW_PRE_TRIPPED == true) {     // Booster 1 Pre Ultra Slow Overload Icon
-    display.drawBitmap(48, 0, ALARM2ICON, 16, 16, WHITE);   
-  }
-  if (IS_POWER2_ULTRA_SLOW_PRE_TRIPPED == true) {     // Booster 2 Pre Ultra Slow Overload Icon
-    display.drawBitmap(112, 0, ALARM2ICON, 16, 16, WHITE);   
-  }
-  
-  // Display Booster District Name and INFO Box
+    display.clearDisplay(); // Clear Previous Display
 
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setTextWrap(false);
-  display.setCursor(0, 20);
-  display.println("**Prototype Booster**");
-  
-  // Display Booster 1 Load In Amps
+    // Display Icons In Yellow Bar
+    
+    if (BOOST1_ENABLED == true) {     // Booster 1 Enabled Icon
+      display.drawBitmap(0, 0, POWERICON, 16, 16, WHITE);
+    }
+    if (BOOST2_ENABLED == true) {     // Booster 2 Enabled Icon
+      display.drawBitmap(64, 0, POWERICON, 16, 16, WHITE);   
+    }
+    if (IS_POWER1_TRIPPED == true) {     // Booster 1 Overload Icon
+      display.drawBitmap(16, 0, OVERLOADICON, 16, 16, WHITE);   
+    }
+    if (IS_POWER2_TRIPPED == true) {     // Booster 2 Overload Icon
+      display.drawBitmap(80, 0, OVERLOADICON, 16, 16, WHITE);   
+    }
+    if (IS_POWER1_SLOW_PRE_TRIPPED == true) {     // Booster 1 Pre Slow Overload Icon
+      display.drawBitmap(32, 0, ALARM1ICON, 16, 16, WHITE);   
+    }
+    if (IS_POWER2_SLOW_PRE_TRIPPED == true) {     // Booster 2 Pre Slow Overload Icon
+      display.drawBitmap(96, 0, ALARM1ICON, 16, 16, WHITE);   
+    }
+    if (IS_POWER1_ULTRA_SLOW_PRE_TRIPPED == true) {     // Booster 1 Pre Ultra Slow Overload Icon
+      display.drawBitmap(48, 0, ALARM2ICON, 16, 16, WHITE);   
+    }
+    if (IS_POWER2_ULTRA_SLOW_PRE_TRIPPED == true) {     // Booster 2 Pre Ultra Slow Overload Icon
+      display.drawBitmap(112, 0, ALARM2ICON, 16, 16, WHITE);   
+    }
+    
+    // Display Booster District Name and INFO Box
 
-  display.setTextSize(2);
-  display.setTextColor(WHITE);
-  display.setTextWrap(false);
-  display.setCursor(4, 32);
-  display.println("B1 AMPS B2");
-  display.setCursor(0, 50);
-  display.println(BOOST1_AMPS, 2);
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setTextWrap(false);
+    display.setCursor(0, 20);
+    display.println("**Prototype Booster**");
+    
+    // Display Booster 1 Load In Amps
 
-  // Display Booster 2 Load In Amps
 
-  display.setTextSize(2);
-  display.setTextColor(WHITE);
-  display.setCursor(80, 50);
-  display.setTextWrap(false);
-  display.println(BOOST2_AMPS, 2);
 
-  // Finally Draw the Screen
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.setTextWrap(false);
+    display.setCursor(4, 32);
+    display.println("B1 AMPS B2");
+    display.setCursor(0, 50);
+    display.println(BOOST1_AMPS_AVG, 2);
 
-  display.display();
+    // Display Booster 2 Load In Amps
+
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.setCursor(80, 50);
+    display.setTextWrap(false);
+    display.println(BOOST2_AMPS_AVG, 2);
+
+    // Finally Draw the Screen
+
+    display.display();
+
+    LAST_PRINT_DISPLAY_TIME = millis();
+
+  }
 
   // Save PWR Button State For Comparison Next Run
   
@@ -810,9 +677,9 @@ void loop() {
     if (millis() - PRINT_BOOST_LAST_TIME >= PRINT_BOOST_DELAY_TIME) {
       Serial.println();
       Serial.print("B1 ");
-      Serial.print(BOOST1_FILTERED.getValue());
+      Serial.print(BOOST1_CURRENT);
       Serial.print(" B2 ");
-      Serial.print(BOOST2_FILTERED.getValue());
+      Serial.print(BOOST2_CURRENT);
       PRINT_BOOST_LAST_TIME = millis();
     }
   }
