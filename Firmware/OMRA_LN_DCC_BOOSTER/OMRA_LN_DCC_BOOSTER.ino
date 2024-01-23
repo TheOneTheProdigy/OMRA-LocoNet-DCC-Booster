@@ -22,18 +22,19 @@ int LN_RX_MICRO_PIN = 8; // Pin To Receive LocoNet Packets From The LocoNet Buss
 int LN_TX_MICRO_PIN = 9; // Pin To Send LocoNet Packets To The LocoNet Buss
 int AR_RLY_PIN = 10; // Pin To Reverse Polarity Via External DPDT Relay With Opto Isolator
 
-float CURRENT_LIMIT = 3.5; // Constaint Current Limit in ma - Fast Trip Current Should Be 140 Percent Of This Value
-float ULTRA_SLOW_BLOW_LIMIT = 3.9; // Upper Limit Of The Ultra Slow Blow Region
-float ULTRA_SLOW_BLOW_TIME = 30000; // Milliseconds To Trip Ultra Slow Blow Fuse
-float SLOW_BLOW_LIMIT = 4.5; // Upper Limit Of The Slow Blow Region In Amps
-float SLOW_BLOW_TIME = 15000; // Milliseconds To Trip Slow Blow Fuse
-float FAST_BLOW_LIMIT = 4.9; // Upper Limit Of The Fast Blow Region In Amps. Anything Above This Will Blow Ultra Fast
-float FAST_BLOW_TIME = 1000; // Milliseconds To Trip Fast Blow Fuses
+float CURRENT_LIMIT = 3.5; // Constant Current Limit in A - Instant Trip Current Should Be 140 Percent Of This Value
+float SLOW_BLOW_LIMIT = 4.25; // Upper Limit Of The Slow Blow Region In Amps
+float INSTANT_BLOW_LIMIT = 4.9; // Lower Limit Of The Instant Blow Region In Amps. Anything Above This Will Blow Instantly
+float SLOW_BLOW_TIME = 30000; // Milliseconds To Trip Slow Blow Fuse
+float FAST_BLOW_TIME = 10000; // Milliseconds To Trip Slow Blow Fuse
 float BOOSTER_REBOOT_TIME = 2000; // Milliseconds To Wait 
 float BOOSTER_TRIPPED_COUNTER_RESET = 65000; // Milliseconds To Go Without A Current Trip To Reset Trip Counter Must Be Higher Than Longest Current Cutout Duration Of 60 Seconds
+
 float RPWM_TIMER_LIMIT = 2000; // Milliseconds To Go Without Valid Railsync Commands Before Boosters Shutdown 
 int RPWM_SIG_EDGES = 4; // Edges To Trigger RailSync Active Or Not Within RPWM_TRIGGER_LIMIT Timeframe
+
 int POWER_BTN_LAST = 0; // A Zero Here Will Power Up The Track On Startup. A 1 Here Will Power Up With Track Power Off
+
 bool SOFTSTART1_ENABLED = false;
 bool SOFTSTART2_ENABLED = false;
 int BOOSTER1_SOFTSTART_COUNT = 5;
@@ -42,17 +43,19 @@ float BOOSTER1_SOFTSTART_MULT = 2;
 float BOOSTER2_SOFTSTART_MULT = 2;
 float BOOSTER1_SOFTSTART_TIME = 5;
 float BOOSTER2_SOFTSTART_TIME = 5;
+
 float BOOST1_CSENSE_OFFSET = 244;
 float BOOST2_CSENSE_OFFSET = 244;
 float BOOSTER1_CURRENT_RATIO = 19.5; // In Thosands To One EG. 8.5 = 8500:1
 float BOOSTER2_CURRENT_RATIO = 19.5; // In Thosands To One EG. 8.5 = 8500:1
 float BOOST1_R_VALUE = 3.3; // In KOHMS
 float BOOST2_R_VALUE = 3.3; // In KOHMS
-bool PRINT_BOOST_OFFSET = false;
+bool PRINT_BOOST_OFFSET = false; // Put A 0 In The CSENSE_OFFSET and True Here To View Suggested Offsets In Serial Monitor.
 float PRINT_BOOST_DELAY_TIME = 2000; // Delay To Print Zero Values To Serial Monitor
+
 float PRINT_DISPLAY_DELAY_TIME = 500; // Refresh Screen Every 500 Micro Seconds
 
-
+// These Below Should Not Need Touched
 
 int BOOSTER1_REBOOT_COUNT = 0;
 int BOOSTER2_REBOOT_COUNT = 0;
@@ -62,22 +65,12 @@ int RPWM_DETECT = 1;
 bool RPWM_RX_TIMER_ACTIVE = false;
 bool BOOST1_ENABLED = false;
 bool IS_POWER1_TRIPPED = false;
-bool IS_POWER1_ULTRA_TRIPPED = false;
-bool IS_POWER1_FAST_TRIPPED = false;
 bool IS_POWER1_FAST_PRE_TRIPPED = false;
-bool IS_POWER1_SLOW_TRIPPED = false;
 bool IS_POWER1_SLOW_PRE_TRIPPED = false;
-bool IS_POWER1_ULTRA_SLOW_TRIPPED = false;
-bool IS_POWER1_ULTRA_SLOW_PRE_TRIPPED = false;
 bool BOOST2_ENABLED = false;
 bool IS_POWER2_TRIPPED = false;
-bool IS_POWER2_ULTRA_TRIPPED = false;
-bool IS_POWER2_FAST_TRIPPED = false;
 bool IS_POWER2_FAST_PRE_TRIPPED = false;
-bool IS_POWER2_SLOW_TRIPPED = false;
 bool IS_POWER2_SLOW_PRE_TRIPPED = false;
-bool IS_POWER2_ULTRA_SLOW_TRIPPED = false;
-bool IS_POWER2_ULTRA_SLOW_PRE_TRIPPED = false;
 bool RPWM_TIMER_ACTIVE = false;
 int MICRO_PWR = 0;
 float BOOST1_CURRENT = 0;
@@ -90,10 +83,10 @@ int RPWM_LAST = 1;
 float PRINT_BOOST_LAST_TIME = 0;
 float LAST_PRINT_DISPLAY_TIME = 0;
 
-unsigned long time1;
-unsigned long time2;
-unsigned long BOOST1_TIMER;
-unsigned long BOOST2_TIMER;
+unsigned long POWER1_FAST_PRE_TIME = 0;
+unsigned long POWER2_FAST_PRE_TIME = 0;
+unsigned long POWER1_SLOW_PRE_TIME = 0;
+unsigned long POWER2_SLOW_PRE_TIME = 0;
 unsigned long BOOSTER1_SHUTDOWN_TIME;
 unsigned long BOOSTER2_SHUTDOWN_TIME;
 unsigned long BOOSTER1_LAST_POWER_ON;
@@ -412,13 +405,8 @@ void turnPower1On() {
   BOOST1_ENABLED = true;
   BOOSTER1_LAST_POWER_ON = millis();
   IS_POWER1_TRIPPED = false;
-  IS_POWER1_ULTRA_TRIPPED = false;
-  IS_POWER1_FAST_TRIPPED = false;
-  IS_POWER1_FAST_PRE_TRIPPED = false;
-  IS_POWER1_SLOW_TRIPPED = false;
-  IS_POWER1_SLOW_PRE_TRIPPED = false;
-  IS_POWER1_ULTRA_SLOW_TRIPPED = false;
-  IS_POWER1_ULTRA_SLOW_PRE_TRIPPED = false;
+  // IS_POWER1_FAST_PRE_TRIPPED = false;
+  // IS_POWER1_SLOW_PRE_TRIPPED = false;
 }
 
 void turnPower2On() {
@@ -438,13 +426,8 @@ void turnPower2On() {
   BOOST2_ENABLED = true;
   BOOSTER2_LAST_POWER_ON = millis();
   IS_POWER2_TRIPPED = false;
-  IS_POWER2_ULTRA_TRIPPED = false;
-  IS_POWER2_FAST_TRIPPED = false;
-  IS_POWER2_FAST_PRE_TRIPPED = false;
-  IS_POWER2_SLOW_TRIPPED = false;
-  IS_POWER2_SLOW_PRE_TRIPPED = false;
-  IS_POWER2_ULTRA_SLOW_TRIPPED = false;
-  IS_POWER2_ULTRA_SLOW_PRE_TRIPPED = false;
+  // IS_POWER2_FAST_PRE_TRIPPED = false;
+  // IS_POWER2_SLOW_PRE_TRIPPED = false;
 }
 
 void turnPower1Off() {
@@ -493,11 +476,46 @@ void loop() {
 
   // Stage 1
   
-  if (BOOST1_AMPS >= FAST_BLOW_LIMIT) {
+  if (BOOST1_AMPS > INSTANT_BLOW_LIMIT) {
     turnPower1Off();
     IS_POWER1_TRIPPED = true;
-    IS_POWER1_ULTRA_TRIPPED = true;
     BOOSTER1_SHUTDOWN_TIME = millis();
+  }
+
+  // Stage 2
+
+  if (BOOST1_AMPS_AVG > SLOW_BLOW_LIMIT) {
+    if (IS_POWER1_FAST_PRE_TRIPPED == false) {
+      POWER1_FAST_PRE_TIME = millis();
+      IS_POWER1_FAST_PRE_TRIPPED = true;
+    }
+    if (millis() >= POWER1_FAST_PRE_TIME + FAST_BLOW_TIME){
+      POWER1_FAST_PRE_TIME += FAST_BLOW_TIME;
+      turnPower1Off();
+      IS_POWER1_TRIPPED = true;
+      BOOSTER1_SHUTDOWN_TIME = millis();
+    }
+  } 
+  if (BOOST1_AMPS_AVG < SLOW_BLOW_LIMIT) {
+    IS_POWER1_FAST_PRE_TRIPPED = false;
+  }
+
+  // Stage 3
+
+  if (BOOST1_AMPS_AVG > CURRENT_LIMIT) {
+    if (IS_POWER1_SLOW_PRE_TRIPPED == false) {
+      POWER1_SLOW_PRE_TIME = millis();
+      IS_POWER1_SLOW_PRE_TRIPPED = true;
+    }
+    if (millis() >= POWER1_SLOW_PRE_TIME + SLOW_BLOW_TIME){
+      POWER1_SLOW_PRE_TIME += SLOW_BLOW_TIME;
+      turnPower1Off();
+      IS_POWER1_TRIPPED = true;
+      BOOSTER1_SHUTDOWN_TIME = millis();
+    }
+  } 
+  if (BOOST1_AMPS_AVG < CURRENT_LIMIT) {
+    IS_POWER1_SLOW_PRE_TRIPPED = false;
   } 
 
   // Booster 2
@@ -512,16 +530,47 @@ void loop() {
 
   // Stage 1
   
-  if (BOOST2_AMPS >= FAST_BLOW_LIMIT) {
+  if (BOOST2_AMPS > INSTANT_BLOW_LIMIT) {
     turnPower2Off();
     IS_POWER2_TRIPPED = true;
-    IS_POWER2_ULTRA_TRIPPED = true;
     BOOSTER2_SHUTDOWN_TIME = millis();
+  }
+
+  // Stage 2
+
+  if (BOOST2_AMPS_AVG > SLOW_BLOW_LIMIT) {
+    if (IS_POWER2_FAST_PRE_TRIPPED == false) {
+      POWER2_FAST_PRE_TIME = millis();
+      IS_POWER2_FAST_PRE_TRIPPED = true;
+    }
+    if (millis() >= POWER2_FAST_PRE_TIME + FAST_BLOW_TIME){
+      POWER2_FAST_PRE_TIME += FAST_BLOW_TIME;
+      turnPower2Off();
+      IS_POWER2_TRIPPED = true;
+      BOOSTER2_SHUTDOWN_TIME = millis();
+    }
   } 
-    
-    // Stage 2
-    
-  
+  if (BOOST2_AMPS_AVG < SLOW_BLOW_LIMIT) {
+    IS_POWER2_FAST_PRE_TRIPPED = false;
+  }
+
+  // Stage 3
+
+  if (BOOST2_AMPS_AVG > CURRENT_LIMIT) {
+    if (IS_POWER2_SLOW_PRE_TRIPPED == false) {
+      POWER2_SLOW_PRE_TIME = millis();
+      IS_POWER2_SLOW_PRE_TRIPPED = true;
+    }
+    if (millis() >= POWER2_SLOW_PRE_TIME + SLOW_BLOW_TIME){
+      POWER2_SLOW_PRE_TIME += SLOW_BLOW_TIME;
+      turnPower2Off();
+      IS_POWER2_TRIPPED = true;
+      BOOSTER2_SHUTDOWN_TIME = millis();
+    }
+  } 
+  if (BOOST2_AMPS_AVG < CURRENT_LIMIT) {
+    IS_POWER2_SLOW_PRE_TRIPPED = false;
+  }  
 
   // Attempt To Repower The Boosters
 
@@ -593,16 +642,16 @@ void loop() {
     if (IS_POWER2_TRIPPED == true) {     // Booster 2 Overload Icon
       display.drawBitmap(80, 0, OVERLOADICON, 16, 16, WHITE);   
     }
-    if (IS_POWER1_SLOW_PRE_TRIPPED == true) {     // Booster 1 Pre Slow Overload Icon
+    if (IS_POWER1_FAST_PRE_TRIPPED == true) {     // Booster 1 Pre Fast Overload Icon
       display.drawBitmap(32, 0, ALARM1ICON, 16, 16, WHITE);   
     }
-    if (IS_POWER2_SLOW_PRE_TRIPPED == true) {     // Booster 2 Pre Slow Overload Icon
+    if (IS_POWER2_FAST_PRE_TRIPPED == true) {     // Booster 2 Pre Fast Overload Icon
       display.drawBitmap(96, 0, ALARM1ICON, 16, 16, WHITE);   
     }
-    if (IS_POWER1_ULTRA_SLOW_PRE_TRIPPED == true) {     // Booster 1 Pre Ultra Slow Overload Icon
+    if (IS_POWER1_SLOW_PRE_TRIPPED == true) {     // Booster 1 Pre Slow Overload Icon
       display.drawBitmap(48, 0, ALARM2ICON, 16, 16, WHITE);   
     }
-    if (IS_POWER2_ULTRA_SLOW_PRE_TRIPPED == true) {     // Booster 2 Pre Ultra Slow Overload Icon
+    if (IS_POWER2_SLOW_PRE_TRIPPED == true) {     // Booster 2 Pre Slow Overload Icon
       display.drawBitmap(112, 0, ALARM2ICON, 16, 16, WHITE);   
     }
     
