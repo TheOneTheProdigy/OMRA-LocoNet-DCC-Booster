@@ -26,7 +26,7 @@ float CURRENT_LIMIT = 3.5; // Constant Current Limit in A - Instant Trip Current
 float SLOW_BLOW_LIMIT = 4.25; // Upper Limit Of The Slow Blow Region In Amps
 float INSTANT_BLOW_LIMIT = 4.9; // Lower Limit Of The Instant Blow Region In Amps. Anything Above This Will Blow Instantly
 float SLOW_BLOW_TIME = 30000; // Milliseconds To Trip Slow Blow Fuse
-float FAST_BLOW_TIME = 10000; // Milliseconds To Trip Slow Blow Fuse
+float FAST_BLOW_TIME = 10000; // Milliseconds To Trip Fast Blow Fuse
 float BOOSTER_REBOOT_TIME = 2000; // Milliseconds To Wait 
 float BOOSTER_TRIPPED_COUNTER_RESET = 65000; // Milliseconds To Go Without A Current Trip To Reset Trip Counter Must Be Higher Than Longest Current Cutout Duration Of 60 Seconds
 
