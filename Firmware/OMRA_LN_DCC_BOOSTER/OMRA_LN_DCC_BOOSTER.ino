@@ -25,13 +25,13 @@ int AR_RLY_PIN = 10; // Pin To Reverse Polarity Via External DPDT Relay With Opt
 float CURRENT_LIMIT = 3.5; // Constant Current Limit in A - Instant Trip Current Should Be 140 Percent Of This Value
 float SLOW_BLOW_LIMIT = 4.25; // Upper Limit Of The Slow Blow Region In Amps
 float INSTANT_BLOW_LIMIT = 4.9; // Lower Limit Of The Instant Blow Region In Amps. Anything Above This Will Blow Instantly
-float SLOW_BLOW_TIME = 30000; // Milliseconds To Trip Slow Blow Fuse
-float FAST_BLOW_TIME = 10000; // Milliseconds To Trip Fast Blow Fuse
+float SLOW_BLOW_TIME = 10000; // Milliseconds To Trip Slow Blow Fuse
+float FAST_BLOW_TIME = 5000; // Milliseconds To Trip Fast Blow Fuse
 float BOOSTER_REBOOT_TIME = 2000; // Milliseconds To Wait 
-float BOOSTER_TRIPPED_COUNTER_RESET = 65000; // Milliseconds To Go Without A Current Trip To Reset Trip Counter Must Be Higher Than Longest Current Cutout Duration Of 60 Seconds
+float BOOSTER_TRIPPED_COUNTER_RESET = 120000; // Milliseconds To Go Without A Current Trip To Reset Trip Counter Must Be Higher Than Longest Current Cutout Duration Of 60 Seconds
 
-float RPWM_TIMER_LIMIT = 2000; // Milliseconds To Go Without Valid Railsync Commands Before Boosters Shutdown 
-int RPWM_SIG_EDGES = 4; // Edges To Trigger RailSync Active Or Not Within RPWM_TRIGGER_LIMIT Timeframe
+float RPWM_TIMER_LIMIT = 2500; // Milliseconds To Go Without Valid Railsync Commands Before Boosters Shutdown 
+int RPWM_SIG_EDGES = 5; // Edges To Trigger RailSync Active Or Not Within RPWM_TRIGGER_LIMIT Timeframe
 
 int POWER_BTN_LAST = 0; // A Zero Here Will Power Up The Track On Startup. A 1 Here Will Power Up With Track Power Off
 
@@ -44,8 +44,8 @@ float BOOSTER2_SOFTSTART_MULT = 2;
 float BOOSTER1_SOFTSTART_TIME = 5;
 float BOOSTER2_SOFTSTART_TIME = 5;
 
-float BOOST1_CSENSE_OFFSET = 244;
-float BOOST2_CSENSE_OFFSET = 244;
+float BOOST1_CSENSE_OFFSET = 278;
+float BOOST2_CSENSE_OFFSET = 243;
 float BOOSTER1_CURRENT_RATIO = 19.5; // In Thosands To One EG. 8.5 = 8500:1
 float BOOSTER2_CURRENT_RATIO = 19.5; // In Thosands To One EG. 8.5 = 8500:1
 float BOOST1_R_VALUE = 3.3; // In KOHMS
@@ -79,6 +79,8 @@ float BOOST1_AMPS = 0;
 float BOOST2_AMPS = 0;
 float BOOST1_AMPS_AVG = 0;
 float BOOST2_AMPS_AVG = 0;
+float BOOST1_AMPS_AVG_DISPLAY = 0;
+float BOOST2_AMPS_AVG_DISPLAY = 0;
 int RPWM_LAST = 1;
 float PRINT_BOOST_LAST_TIME = 0;
 float LAST_PRINT_DISPLAY_TIME = 0;
@@ -405,8 +407,6 @@ void turnPower1On() {
   BOOST1_ENABLED = true;
   BOOSTER1_LAST_POWER_ON = millis();
   IS_POWER1_TRIPPED = false;
-  // IS_POWER1_FAST_PRE_TRIPPED = false;
-  // IS_POWER1_SLOW_PRE_TRIPPED = false;
 }
 
 void turnPower2On() {
@@ -426,8 +426,6 @@ void turnPower2On() {
   BOOST2_ENABLED = true;
   BOOSTER2_LAST_POWER_ON = millis();
   IS_POWER2_TRIPPED = false;
-  // IS_POWER2_FAST_PRE_TRIPPED = false;
-  // IS_POWER2_SLOW_PRE_TRIPPED = false;
 }
 
 void turnPower1Off() {
@@ -469,9 +467,10 @@ void loop() {
   BOOST1_CURRENT = analogReadFast(C_SENSE1_PIN) - BOOST1_CSENSE_OFFSET;
   BOOST1_AMPS = (((BOOST1_CURRENT * .0048828125) / BOOST1_R_VALUE) * BOOSTER1_CURRENT_RATIO);
   BOOST1_AMPS_AVG = BOOST1_AMPS_AVG + (BOOST1_AMPS - BOOST1_AMPS_AVG) / 10;
+  BOOST1_AMPS_AVG_DISPLAY = BOOST1_AMPS_AVG;
 
-  if (BOOST1_AMPS_AVG <= 0.00) {
-    BOOST1_AMPS_AVG = 0.0;
+  if (BOOST1_AMPS_AVG_DISPLAY <= 0.09) {
+    BOOST1_AMPS_AVG_DISPLAY = 0.0;
   }
 
   // Stage 1
@@ -523,9 +522,10 @@ void loop() {
   BOOST2_CURRENT = analogReadFast(C_SENSE2_PIN) - BOOST2_CSENSE_OFFSET;
   BOOST2_AMPS = (((BOOST2_CURRENT * .0048828125) / BOOST2_R_VALUE) * BOOSTER2_CURRENT_RATIO);
   BOOST2_AMPS_AVG = BOOST2_AMPS_AVG + (BOOST2_AMPS - BOOST2_AMPS_AVG) / 10;
+  BOOST2_AMPS_AVG_DISPLAY = BOOST2_AMPS_AVG;
 
-  if (BOOST2_AMPS_AVG <= 0.00) {
-    BOOST2_AMPS_AVG = 0.0;
+  if (BOOST2_AMPS_AVG_DISPLAY <= 0.09) {
+    BOOST2_AMPS_AVG_DISPLAY = 0.0;
   }
 
   // Stage 1
@@ -580,19 +580,19 @@ void loop() {
     if (millis() - BOOSTER1_LAST_POWER_ON >= BOOSTER_TRIPPED_COUNTER_RESET) {
       BOOSTER1_REBOOT_COUNT = 0;
     }
-    else if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= BOOSTER_REBOOT_TIME) && (BOOSTER1_REBOOT_COUNT <= 15)) {
+    else if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= BOOSTER_REBOOT_TIME) && (BOOSTER1_REBOOT_COUNT <= 5)) {
       turnPower1On();
       BOOSTER1_REBOOT_COUNT = BOOSTER1_REBOOT_COUNT + 1;
     }
-    else if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*5)) && (BOOSTER1_REBOOT_COUNT <= 30)) {
+    else if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*5)) && (BOOSTER1_REBOOT_COUNT <= 10)) {
       turnPower1On();
       BOOSTER1_REBOOT_COUNT = BOOSTER1_REBOOT_COUNT + 1;
     }
-    else if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*15)) && (BOOSTER1_REBOOT_COUNT <= 45)) {
+    else if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*15)) && (BOOSTER1_REBOOT_COUNT <= 20)) {
       turnPower1On();
       BOOSTER1_REBOOT_COUNT = BOOSTER1_REBOOT_COUNT + 1;
     }
-    else if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*30)) && (BOOSTER1_REBOOT_COUNT <= 52)) {
+    else if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*30)) && (BOOSTER1_REBOOT_COUNT <= 25)) {
       turnPower1On();
       BOOSTER1_REBOOT_COUNT = BOOSTER1_REBOOT_COUNT + 1;
     }
@@ -604,19 +604,19 @@ void loop() {
     if (millis() - BOOSTER2_LAST_POWER_ON >= BOOSTER_TRIPPED_COUNTER_RESET) {
       BOOSTER2_REBOOT_COUNT = 0;
     }
-    else if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= BOOSTER_REBOOT_TIME) && (BOOSTER2_REBOOT_COUNT <= 15)) {
+    else if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= BOOSTER_REBOOT_TIME) && (BOOSTER2_REBOOT_COUNT <= 5)) {
       turnPower2On();
       BOOSTER2_REBOOT_COUNT = BOOSTER2_REBOOT_COUNT + 1;
     }
-    else if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*5)) && (BOOSTER2_REBOOT_COUNT <= 30)) {
+    else if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*5)) && (BOOSTER2_REBOOT_COUNT <= 10)) {
       turnPower2On();
       BOOSTER2_REBOOT_COUNT = BOOSTER2_REBOOT_COUNT + 1;
     }
-    else if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*15)) && (BOOSTER2_REBOOT_COUNT <= 45)) {
+    else if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*15)) && (BOOSTER2_REBOOT_COUNT <= 20)) {
       turnPower2On();
       BOOSTER2_REBOOT_COUNT = BOOSTER2_REBOOT_COUNT + 1;
     }
-    else if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*30)) && (BOOSTER2_REBOOT_COUNT <= 52)) {
+    else if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= (BOOSTER_REBOOT_TIME*30)) && (BOOSTER2_REBOOT_COUNT <= 25)) {
       turnPower2On();
       BOOSTER2_REBOOT_COUNT = BOOSTER2_REBOOT_COUNT + 1;
     }
@@ -673,7 +673,7 @@ void loop() {
     display.setCursor(4, 32);
     display.println("B1 AMPS B2");
     display.setCursor(0, 50);
-    display.println(BOOST1_AMPS_AVG, 2);
+    display.println(BOOST1_AMPS_AVG_DISPLAY, 2);
 
     // Display Booster 2 Load In Amps
 
@@ -681,7 +681,7 @@ void loop() {
     display.setTextColor(WHITE);
     display.setCursor(80, 50);
     display.setTextWrap(false);
-    display.println(BOOST2_AMPS_AVG, 2);
+    display.println(BOOST2_AMPS_AVG_DISPLAY, 2);
 
     // Finally Draw the Screen
 
