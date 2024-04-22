@@ -34,7 +34,7 @@ float BOOSTER1_CURRENT_RATIO = 10250; // 8500 = 8500:1
 float BOOSTER2_CURRENT_RATIO = 8500; // 8500 = 8500:1
 float BOOST1_R_VALUE = 5000; // In OHMS
 float BOOST2_R_VALUE = 5000; // In OHMS
-bool PRINT_BOOST_OFFSET = true; // Put A 0 In The CSENSE_OFFSET and True Here To View Suggested Offsets In Serial Monitor.
+bool PRINT_BOOST_OFFSET = false; // Put A 0 In The CSENSE_OFFSET and True Here To View Suggested Offsets In Serial Monitor.
 float PRINT_BOOST_DELAY_TIME = 2000; // Delay To Print Zero Values To Serial Monitor
 
 // These Below Should Not Need Touched
