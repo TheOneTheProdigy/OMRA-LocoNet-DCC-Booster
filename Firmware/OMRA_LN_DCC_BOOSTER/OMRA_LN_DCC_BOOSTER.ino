@@ -449,19 +449,19 @@ void loop() {
     
     if (BOOST1_ENABLED == true) {     // Booster 1 Enabled Icon
       display.drawBitmap(0, 0, POWERICON, 16, 16, WHITE);
-	  digitalWrite(ALARM1_PIN, LOW);	// kc deactivate the short circit alarm		
+      digitalWrite(ALARM1_PIN, LOW);	// kc deactivate the short circit alarm		
     }
     if (BOOST2_ENABLED == true) {     // Booster 2 Enabled Icon
       display.drawBitmap(64, 0, POWERICON, 16, 16, WHITE);   
-	  digitalWrite(ALARM2_PIN, LOW);	// kc deactivate the short circit alarm		
+      digitalWrite(ALARM2_PIN, LOW);	// kc deactivate the short circit alarm		
     }
     if (IS_POWER1_TRIPPED == true) {     // Booster 1 Overload Icon
       display.drawBitmap(16, 0, OVERLOADICON, 16, 16, WHITE); 
-	  digitalWrite(ALARM1_PIN, HIGH);	// kc activate the short circit alarm	
+      digitalWrite(ALARM1_PIN, HIGH);	// kc activate the short circit alarm	
     }
     if (IS_POWER2_TRIPPED == true) {     // Booster 2 Overload Icon
       display.drawBitmap(80, 0, OVERLOADICON, 16, 16, WHITE);   
-	  digitalWrite(ALARM2_PIN, HIGH);	// kc activate the short circit alarm	
+      digitalWrite(ALARM2_PIN, HIGH);	// kc activate the short circit alarm	
     }
     if (IS_POWER1_FAST_PRE_TRIPPED == true) {     // Booster 1 Pre Fast Overload Icon
       display.drawBitmap(32, 0, ALARM1ICON, 16, 16, WHITE);   
