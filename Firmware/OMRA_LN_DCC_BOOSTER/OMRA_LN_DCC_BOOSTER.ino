@@ -95,9 +95,22 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 void setup() {
 
-  if (PRINT_BOOST_OFFSET == true) {
-    // Start Serial
-    Serial.begin(9600);
+	// kc added serial output of calibration values at startup for documentation
+  Serial.begin(9600);
+  Serial.println("Calibration Values for OMRA Booster");
+  Serial.print("BOOST1_CSENSE_OFFSET: ");
+  Serial.println(BOOST1_CSENSE_OFFSET);
+  Serial.print("BOOST2_CSENSE_OFFSET: ");
+  Serial.println(BOOST2_CSENSE_OFFSET);
+  Serial.print("BOOSTER1_CURRENT_RATIO: ");
+  Serial.println(BOOSTER1_CURRENT_RATIO);
+  Serial.print("BOOSTER2_CURRENT_RATIO: ");
+  Serial.println(BOOSTER2_CURRENT_RATIO);
+	
+if (PRINT_BOOST_OFFSET == false) {
+  //  if PRINT_BOOST_OFFSET == false then Serial is not needed, turn it off.
+  Serial.flush();  
+  Serial.end();	// kc Disable serial    
   }
 
   // Setup IO Pins
