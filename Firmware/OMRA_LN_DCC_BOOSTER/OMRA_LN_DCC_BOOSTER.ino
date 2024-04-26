@@ -97,6 +97,9 @@ void setup() {
 
 	// kc added serial output of calibration values at startup for documentation
   Serial.begin(9600);
+  while (!Serial) {
+   ;  // wait for serial port to connect.
+  }
   Serial.println("Calibration Values for OMRA Booster");
   Serial.print("BOOST1_CSENSE_OFFSET: ");
   Serial.println(BOOST1_CSENSE_OFFSET);
