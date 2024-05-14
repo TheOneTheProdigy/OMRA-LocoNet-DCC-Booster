@@ -1,6 +1,7 @@
 //  DCC / LocoNet RailSync Booster - Dual 5A Booster Districts With Overload Protection, Overload Output, And OLED Screen With Both Booster's Current and Status
 //  2024 Lance Bradley
 //  This Is The Firmware For The 10A-X2 Booster For The OMRA Club SPFD Mo
+//  kc Includes code for visual and sonic short circuit alarm - 04/25/2024
 
 #include <SPI.h>
 #include <Wire.h>
@@ -48,6 +49,8 @@ int RPWM_DETECT_PIN = 4; // Pin To Detect Valid Railsync Packets and Shut Down T
 int LN_RX_MICRO_PIN = 8; // Pin To Receive LocoNet Packets From The LocoNet Buss
 int LN_TX_MICRO_PIN = 9; // Pin To Send LocoNet Packets To The LocoNet Buss
 int AR_RLY_PIN = 10; // Pin To Reverse Polarity Via External DPDT Relay With Opto Isolator
+int ALARM1_PIN = 6;		// kc Pin to activate LED and piezo alarm for booster 1 short circuit trip
+int ALARM2_PIN = 7;		// kc Pin to activate LED and piezo alarm for booster 2 short circuit trip
 
 int BOOSTER1_REBOOT_COUNT = 0;
 int BOOSTER2_REBOOT_COUNT = 0;
@@ -92,9 +95,25 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 void setup() {
 
-  if (PRINT_BOOST_OFFSET == true) {
-    // Start Serial
-    Serial.begin(9600);
+	// kc added serial output of calibration values at startup for documentation
+  Serial.begin(9600);
+  while (!Serial) {
+   ;  // wait for serial port to connect.
+  }
+  Serial.println("Calibration Values for OMRA Booster");
+  Serial.print("BOOST1_CSENSE_OFFSET: ");
+  Serial.println(BOOST1_CSENSE_OFFSET);
+  Serial.print("BOOST2_CSENSE_OFFSET: ");
+  Serial.println(BOOST2_CSENSE_OFFSET);
+  Serial.print("BOOSTER1_CURRENT_RATIO: ");
+  Serial.println(BOOSTER1_CURRENT_RATIO);
+  Serial.print("BOOSTER2_CURRENT_RATIO: ");
+  Serial.println(BOOSTER2_CURRENT_RATIO);
+	
+if (PRINT_BOOST_OFFSET == false) {
+  //  if PRINT_BOOST_OFFSET == false then Serial is not needed, turn it off.
+  Serial.flush();  
+  Serial.end();	// kc Disable serial    
   }
 
   // Setup IO Pins
@@ -103,7 +122,10 @@ void setup() {
   pinMode(EN2_PIN, OUTPUT);  
   pinMode(LN_TX_MICRO_PIN, OUTPUT); 
   pinMode(AR_RLY_PIN, OUTPUT); 
+  pinMode(ALARM1_PIN, OUTPUT); 		// kc setup alarm pins
+  pinMode(ALARM2_PIN, OUTPUT);		// kc setup alarm pins	
 
+	
   // Start Display
 
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // here the 0x3c is the I2C address, check your i2c address if u have multiple devices.
@@ -443,15 +465,19 @@ void loop() {
     
     if (BOOST1_ENABLED == true) {     // Booster 1 Enabled Icon
       display.drawBitmap(0, 0, POWERICON, 16, 16, WHITE);
+      digitalWrite(ALARM1_PIN, LOW);	// kc deactivate the short circit alarm		
     }
     if (BOOST2_ENABLED == true) {     // Booster 2 Enabled Icon
       display.drawBitmap(64, 0, POWERICON, 16, 16, WHITE);   
+      digitalWrite(ALARM2_PIN, LOW);	// kc deactivate the short circit alarm		
     }
     if (IS_POWER1_TRIPPED == true) {     // Booster 1 Overload Icon
-      display.drawBitmap(16, 0, OVERLOADICON, 16, 16, WHITE);   
+      display.drawBitmap(16, 0, OVERLOADICON, 16, 16, WHITE); 
+      digitalWrite(ALARM1_PIN, HIGH);	// kc activate the short circit alarm	
     }
     if (IS_POWER2_TRIPPED == true) {     // Booster 2 Overload Icon
       display.drawBitmap(80, 0, OVERLOADICON, 16, 16, WHITE);   
+      digitalWrite(ALARM2_PIN, HIGH);	// kc activate the short circit alarm	
     }
     if (IS_POWER1_FAST_PRE_TRIPPED == true) {     // Booster 1 Pre Fast Overload Icon
       display.drawBitmap(32, 0, ALARM1ICON, 16, 16, WHITE);   
