@@ -2,6 +2,10 @@
 //  2024 Lance Bradley
 //  This Is The Firmware For The 10A-X2 Booster For The OMRA Club SPFD Mo
 //  kc Includes code for visual and sonic short circuit alarm - 04/25/2024
+//  kc 05/24/2024 - Modifying alarm fuctions to use pins 5, MICRO_PWR_PIN,  and pin 10, AR_RLY_PIN, through CN3 and CN4. Grounds are separated on the alarm remote display board and     
+//  nothing cross connects from booster to booster.
+    //  Pin 10, AR_RLY_PIN is now used for short circuit alarm for IBT_2 #1. Pin 10 connects to CN3-pin_3, GND is on CN3-pin_2.
+    //  Pin 5, MICRO_PWR_PIN is now used for short circuit alarm for IBT_2 #2.  Pin 5 connects to CN4-pin_1, GND is CN4-pin_2.
 
 #include <SPI.h>
 #include <Wire.h>
@@ -29,9 +33,9 @@ int POWER_BTN_LAST = 0; // A Zero Here Will Power Up The Track On Startup. A 1 H
 
 float PRINT_DISPLAY_DELAY_TIME = 500; // Refresh Screen Every 500 Micro Seconds
 
-float BOOST1_CSENSE_OFFSET = 403; // 350 to 400 A Good Starting Point
-float BOOST2_CSENSE_OFFSET = 353; // 350 to 400 A Good Starting Point
-float BOOSTER1_CURRENT_RATIO = 10250; // 8500 = 8500:1
+float BOOST1_CSENSE_OFFSET = 398; // 350 to 400 A Good Starting Point
+float BOOST2_CSENSE_OFFSET = 350; // 350 to 400 A Good Starting Point
+float BOOSTER1_CURRENT_RATIO = 8500; // 8500 = 8500:1
 float BOOSTER2_CURRENT_RATIO = 8500; // 8500 = 8500:1
 float BOOST1_R_VALUE = 5000; // In OHMS
 float BOOST2_R_VALUE = 5000; // In OHMS
@@ -40,7 +44,7 @@ float PRINT_BOOST_DELAY_TIME = 2000; // Delay To Print Zero Values To Serial Mon
 
 // These Below Should Not Need Touched
 
-int MICRO_PWR_PIN = 5; // MICRO_PWR - External PWR - Pulled up Internally
+//  kc 20240528 //     int MICRO_PWR_PIN = 5; // MICRO_PWR - External PWR - Pulled up Internally
 int C_SENSE1_PIN = A1; // Booster 1 Current Sensing Pin
 int C_SENSE2_PIN = A2; // Booster 1 Current Sensing Pin
 int EN1_PIN = 21; // Pin to Enable Booster 1
@@ -48,9 +52,9 @@ int EN2_PIN = 18; // Pin To Enable Booster 2
 int RPWM_DETECT_PIN = 4; // Pin To Detect Valid Railsync Packets and Shut Down Track Power If No Signal
 int LN_RX_MICRO_PIN = 8; // Pin To Receive LocoNet Packets From The LocoNet Buss
 int LN_TX_MICRO_PIN = 9; // Pin To Send LocoNet Packets To The LocoNet Buss
-int AR_RLY_PIN = 10; // Pin To Reverse Polarity Via External DPDT Relay With Opto Isolator
-int ALARM1_PIN = 6;		// kc Pin to activate LED and piezo alarm for booster 1 short circuit trip
-int ALARM2_PIN = 7;		// kc Pin to activate LED and piezo alarm for booster 2 short circuit trip
+//int AR_RLY_PIN = 10; // Pin To Reverse Polarity Via External DPDT Relay With Opto Isolator
+int ALARM1_PIN = 10;		// kc Pin to activate LED and piezo alarm for booster 1 short circuit trip
+int ALARM2_PIN = 5;		// kc Pin to activate LED and piezo alarm for booster 2 short circuit trip
 
 int BOOSTER1_REBOOT_COUNT = 0;
 int BOOSTER2_REBOOT_COUNT = 0;
@@ -67,7 +71,7 @@ bool IS_POWER2_TRIPPED = false;
 bool IS_POWER2_FAST_PRE_TRIPPED = false;
 bool IS_POWER2_SLOW_PRE_TRIPPED = false;
 bool RPWM_TIMER_ACTIVE = false;
-int MICRO_PWR = 0;
+//   kc 20240528     `int MICRO_PWR = 0;
 float BOOST1_CURRENT = 0;
 float BOOST2_CURRENT = 0;
 float BOOST1_AMPS = 0;
@@ -97,9 +101,12 @@ void setup() {
 
 	// kc added serial output of calibration values at startup for documentation
   Serial.begin(9600);
+  delay(1500);
+  /*     *******  this was an error.  if no serial port is connected the MCU will not go past here.   ******
   while (!Serial) {
    ;  // wait for serial port to connect.
   }
+  */
   Serial.println("Calibration Values for OMRA Booster");
   Serial.print("BOOST1_CSENSE_OFFSET: ");
   Serial.println(BOOST1_CSENSE_OFFSET);
@@ -117,11 +124,11 @@ if (PRINT_BOOST_OFFSET == false) {
   }
 
   // Setup IO Pins
-  pinMode(MICRO_PWR_PIN, INPUT_PULLUP); 
+ //   pinMode(MICRO_PWR_PIN, INPUT_PULLUP);  //kc 20240528 using this pin for short alarm
   pinMode(EN1_PIN, OUTPUT); 
   pinMode(EN2_PIN, OUTPUT);  
   pinMode(LN_TX_MICRO_PIN, OUTPUT); 
-  pinMode(AR_RLY_PIN, OUTPUT); 
+  //pinMode(AR_RLY_PIN, OUTPUT);   // kc - using this pin for short alarm as of 20240528
   pinMode(ALARM1_PIN, OUTPUT); 		// kc setup alarm pins
   pinMode(ALARM2_PIN, OUTPUT);		// kc setup alarm pins	
 
@@ -218,6 +225,8 @@ void turnPower2Off() {
 // Start Main Loop
 void loop() {
 
+/*     //kc 20240528  this code block pertains to the External power button which is not being used.  The pin is now used for short circuit
+alarming instead.
   // Detect External Power Button
 
   MICRO_PWR = digitalRead(MICRO_PWR_PIN);
@@ -236,6 +245,7 @@ void loop() {
   if ((MICRO_PWR == HIGH) && (IS_POWER2_TRIPPED == false) && ((millis() - BOOSTER2_LAST_POWER_ON) >= 250 ) && (MICRO_PWR != POWER_BTN_LAST)) {
     turnPower2On();
   }
+*/
 
   // Check Current Of Boosters 1 and 2
 
@@ -409,7 +419,7 @@ void loop() {
 
   // Booster 1 Repower Procedure
 
-  if ((IS_POWER1_TRIPPED == true) && (MICRO_PWR == true)) {
+  if (IS_POWER1_TRIPPED == true) {                                             // kc 20240528   // && (MICRO_PWR == true)) {
     if (millis() - BOOSTER1_LAST_POWER_ON >= BOOSTER_TRIPPED_COUNTER_RESET) {
       BOOSTER1_REBOOT_COUNT = 0;
     }
@@ -433,7 +443,7 @@ void loop() {
 
   // Booster 2 Repower Procedure
 
- if ((IS_POWER2_TRIPPED == true) && (MICRO_PWR == true)) {
+ if (IS_POWER2_TRIPPED == true) {   //  kc 20240528//  && (MICRO_PWR == true)) {
     if (millis() - BOOSTER2_LAST_POWER_ON >= BOOSTER_TRIPPED_COUNTER_RESET) {
       BOOSTER2_REBOOT_COUNT = 0;
     }
@@ -530,7 +540,7 @@ void loop() {
 
   // Save PWR Button State For Comparison Next Run
   
-  POWER_BTN_LAST = MICRO_PWR;
+  //  kc 20240528 using MICRO_PWR pin for short circuit alarm //    POWER_BTN_LAST = MICRO_PWR;
 
   // Check For Railsync Activity And Turn Off Or ON Track Power Depending On Activity After So Many Seconds
 
@@ -546,8 +556,11 @@ void loop() {
     }
   }
   if ((millis() - RPWM_TIMER) > (RPWM_TIMER_LIMIT)) {
-    if ((RPWM_COUNT >= RPWM_SIG_EDGES) && (MICRO_PWR == HIGH) && (IS_POWER1_TRIPPED == false) && (IS_POWER2_TRIPPED == false)) {
-      turnPowerOn();
+    /* if ((RPWM_COUNT >= RPWM_SIG_EDGES) && (MICRO_PWR == HIGH) && (IS_POWER1_TRIPPED == false) && (IS_POWER2_TRIPPED == false)) {
+    //  kc 20240524  removed reference to MICRO_PWR_PIN, now being used for short circuit alsrm  
+    */  
+    if ((RPWM_COUNT >= RPWM_SIG_EDGES) && (IS_POWER1_TRIPPED == false) && (IS_POWER2_TRIPPED == false)) {
+    turnPowerOn();
     }
     if (RPWM_COUNT <= RPWM_SIG_EDGES) {
       turnPowerOff();
