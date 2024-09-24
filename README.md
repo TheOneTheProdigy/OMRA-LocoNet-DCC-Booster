@@ -89,9 +89,25 @@ Features:
 
 Have a look in the [PCB Manufacturing Folder](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/tree/Main-2.0/PCB)
 
+Here you will find the EasyEDA cad files, schematics, gerber files, and board design files. You will need to find a manufacture like JLCPCB and print few couple boards.
+
+Also take a look at the BOM for the list of components you will need to complete the project.
+
 ### Prerequisites
 
 [![Screen Shot][screen-shot]](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster)
+
+- A PCB
+- Full BOM
+- IBT2 Ribbon Cables X2
+- 10A 15V SMPS Power Supply
+- Some Wire
+- LocoNet Command Station
+- LocoNet Cable
+- USB Type C Cable
+- Computer With Arduino IDE
+- PCB Stands, Mounting Hardware
+
 
 ### Installation
 
