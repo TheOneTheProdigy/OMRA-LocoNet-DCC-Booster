@@ -139,7 +139,7 @@ Now copy this repository and open it in the Arduino IDE, select the board and CO
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-On first power up you may need to enable debugging to fine tune the analog inputs. The out of the box config works well but may be off about .25 to .50 of an amp due to the manufacturing processes of the BTS7960 chips. The debugging flag will output all info needed to serial port with 9600 baud. Use this info to fine tune if you wish. The 2 offsets allow you to adjust the starting current offset and the 5A current offset. This will in turn change the S curve for all other measurements. You will want to shoot for 0 on no current load and a analog reading of about 520 on a 4.5A load. I use a 2.8 Ohm 10W resistor to test. 
+On first power up you may need to enable debugging to fine tune the analog inputs. The out of the box config works well but may be off about 1/4 to 1/2 of an amp due to the manufacturing processes of the BTS7960 chips. The debugging flag will output all info needed to serial port with 9600 baud. Use this info to fine tune the zero point current around the max current. The 2 offsets allow you to adjust the starting current offset and the 5A current offset. This will in turn change the S curve for all other measurements. You will want to shoot for 0 on no current load and a analog reading of about 520 on a 4.5A load. I use a 2.8 Ohm 10W resistor to test. This number comes from a average i took across 10 units. I plotted the data from 1 to 9 amps and made the current algorithum using real data from the 10 IBT2 units tested.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
