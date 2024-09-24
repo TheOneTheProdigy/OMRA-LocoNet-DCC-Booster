@@ -76,7 +76,7 @@ Of course, no one template will serve all projects since your needs may be diffe
 
 Use the `BLANK_README.md` to get started.
 
-[![Screen Shot][screen-shot]](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster)
+[![Circuit Board][circuit-board]](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
