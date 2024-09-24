@@ -2,10 +2,14 @@
 
 <!-- PROJECT SHIELDS -->
 
+<div align="center">
+
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
+
+</div>
 
 <!-- PROJECT LOGO -->
 <br />
@@ -80,23 +84,6 @@ Use the `BLANK_README.md` to get started.
 
 
 
-### Built With
-
-This section should list any major frameworks/libraries used to bootstrap your project. Leave any add-ons/plugins for the acknowledgements section. Here are a few examples.
-
-* [![Next][Next.js]][Next-url]
-* [![React][React.js]][React-url]
-* [![Vue][Vue.js]][Vue-url]
-* [![Angular][Angular.io]][Angular-url]
-* [![Svelte][Svelte.dev]][Svelte-url]
-* [![Laravel][Laravel.com]][Laravel-url]
-* [![Bootstrap][Bootstrap.com]][Bootstrap-url]
-* [![JQuery][JQuery.com]][JQuery-url]
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
 <!-- GETTING STARTED -->
 ## Getting Started
 
@@ -118,7 +105,7 @@ _Below is an example of how you can instruct your audience on installing and set
 1. Get a free API Key at [https://example.com](https://example.com)
 2. Clone the repo
    ```sh
-   git clone https://github.com/github_username/repo_name.git
+   git clone https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster.git
    ```
 3. Install NPM packages
    ```sh
@@ -130,7 +117,7 @@ _Below is an example of how you can instruct your audience on installing and set
    ```
 5. Change git remote url to avoid accidental pushes to base project
    ```sh
-   git remote set-url origin github_username/repo_name
+   git remote set-url origin TheOneTheProdigy/OMRA-LocoNet-DCC-Booster
    git remote -v # confirm the changes
    ```
 
@@ -152,15 +139,9 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 <!-- ROADMAP -->
 ## Roadmap
 
-- [x] Add Changelog
-- [x] Add back to top links
-- [ ] Add Additional Templates w/ Examples
-- [ ] Add "components" document to easily copy & paste sections of the readme
-- [ ] Multi-language Support
-    - [ ] Chinese
-    - [ ] Spanish
+- [] Add LocoNet Features
 
-See the [open issues](https://github.com/othneildrew/Best-README-Template/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
