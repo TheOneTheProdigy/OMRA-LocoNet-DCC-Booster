@@ -182,8 +182,8 @@ Don't forget to give the project a star! Thanks again!
 
 ### Top contributors:
 
-<a href="https://github.com/othneildrew/Best-README-Template/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=othneildrew/Best-README-Template" alt="contrib.rocks image" />
+<a href="https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=TheOneTheProdigy/OMRA-LocoNet-DCC-Booster" alt="contrib.rocks image" />
 </a>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -202,9 +202,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@your_twitter](https://twitter.com/your_username) - email@example.com
-
-Project Link: [https://github.com/your_username/repo_name](https://github.com/your_username/repo_name)
+Project Link: [https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -238,8 +236,6 @@ Use this space to list resources you find helpful and would like to give credit 
 [stars-url]: https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/stargazers
 [issues-shield]: https://img.shields.io/github/issues/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster.svg?style=for-the-badge
 [issues-url]: https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/issues
-[license-shield]: https://img.shields.io/github/license/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster.svg?style=for-the-badge
-[license-url]: https://raw.githubusercontent.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/refs/heads/Main-2.0/LICENSE.txt
 [product-screenshot]: images/screenshot.png
 [Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
 [Next-url]: https://nextjs.org/
