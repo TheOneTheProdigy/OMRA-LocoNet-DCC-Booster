@@ -89,7 +89,7 @@ Features:
 
 Have a look in the [PCB Manufacturing Folder](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/tree/Main-2.0/PCB)
 
-Here you will find the EasyEDA cad files, schematics, gerber files, and board design files. You will need to find a manufacture like JLCPCB and print few couple boards.
+There you will find the EasyEDA CAD files, schematics, gerber files, and all the board design files. You will need to find a manufacture like JLCPCB and print few couple boards.
 
 Also take a look at the BOM for the list of components you will need to complete the project.
 
