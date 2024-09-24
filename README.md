@@ -222,4 +222,4 @@ Project Link: [https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster](htt
 [circuit-board]: images/gerber.png
 [screen-shot]: images/screenshot.png
 [display]: images/display.png
-[ibt2]: images/ibts.png
+[ibt2]: images/ibt2.png
