@@ -128,7 +128,7 @@ You should now be able to upload code to the Pro Micro.
 
 Now you will need the libraries installed into the library manager. Copy the zip files from this link and install them in the library manager.
 
-[Librarys](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/tree/Main-2.0/Firmware/Arduino%20Lib)
+[Library Zip Files For Installation In Arduino IDE](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/tree/Main-2.0/Firmware/Arduino%20Lib)
 
 Now copy this repository and open it in the Arduino IDE, select the board and COM port and you should be ready to edit and upload.
 
