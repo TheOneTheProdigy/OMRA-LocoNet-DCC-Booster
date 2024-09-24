@@ -15,7 +15,8 @@ Steps to reproduce the behavior.
 A clear and concise description of what you expected to happen.
 
 ### Environment
- - OS: [e.g. Arch Linux]
+ - OS: [e.g. Arch Linux or Windows 10]
+ - Control Bus: [e.g. LocoNet]
  - Other details that you think may affect.
 
 ### Additional context
