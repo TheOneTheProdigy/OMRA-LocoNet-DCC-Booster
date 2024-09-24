@@ -93,6 +93,12 @@ There you will find the EasyEDA CAD files, schematics, gerber files, and all the
 
 Also take a look at the BOM for the list of components you will need to complete the project.
 
+*** The IBT2 module will need the 2 slew rate resistors bridged over (0 Ohm) and the current sense resistors removed! ***
+
+[![IBT2][ibt2]](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster)
+
+*** If you have V1 of the PCB R17 has been removed, R5 and R21 have been changed to 22K! ***
+
 ### Prerequisites
 
 [![Screen Shot][screen-shot]](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster)
@@ -111,26 +117,21 @@ Also take a look at the BOM for the list of components you will need to complete
 
 ### Installation
 
-_Below is an example of how you can instruct your audience on installing and setting up your app. This template doesn't rely on any external dependencies or services._
+To begin, you'll need to install the Arduino IDE. Then point the Arduino IDE board manager to a custom URL. Open up Arduino, then go to the Preferences (File > Preferences). Then, towards the bottom of the window, paste this URL into the "Additional Board Manager URLs" text box:
 
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
-   ```sh
-   git clone https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster.git
-   ```
-3. Install NPM packages
-   ```sh
-   npm install
-   ```
-4. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
-   ```
-5. Change git remote url to avoid accidental pushes to base project
-   ```sh
-   git remote set-url origin TheOneTheProdigy/OMRA-LocoNet-DCC-Booster
-   git remote -v # confirm the changes
-   ```
+https://raw.githubusercontent.com/sparkfun/Arduino_Boards/main/IDE_Board_Manager/package_sparkfun_index.json
+
+Click OK. Then open the Board Manager by clicking Tools, then hovering over the Board selection tab and clicking Board Manager.
+
+Search for 'sparkfun' in the Board Manager. You should see the SparkFun AVR Boards package appear. Click install, wait a few moments, and all the .brd files you'll need should be installed, indicated by the blue 'Installed' that is printed next to the package.
+
+You should now be able to upload code to the Pro Micro.
+
+Now you will need the libraries installed into the library manager. Copy the zip files from this link and install them in the library manager.
+
+[Librarys](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/tree/Main-2.0/Firmware/Arduino%20Lib)
+
+Now copy this repository and open it in the Arduino IDE, select the board and COM port and you should be ready to edit and upload.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -139,9 +140,7 @@ _Below is an example of how you can instruct your audience on installing and set
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
-
-_For more examples, please refer to the [Documentation](https://example.com)_
+On first power up you may need to enable debugging to fine tune the analog inputs. The out of the box config works well but may be off .25 to .50 of an AMP due to manufacturing processes of the BTS7960 chips.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -223,3 +222,4 @@ Project Link: [https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster](htt
 [circuit-board]: images/gerber.png
 [screen-shot]: images/screenshot.png
 [display]: images/display.png
+[ibt2]: images/ibts.png
