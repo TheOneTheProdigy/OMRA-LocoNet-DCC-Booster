@@ -65,6 +65,10 @@
 
 [![Main About This Project][display]](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster)
 
+
+We built this booster to help solve a few issues with our club layout. We needed more power districts and more circuit breakers. We decided to build a combo unit that would satisfy both needs. These units can output 5A continuous per output and have 2 track outputs each for a total of 10 amps of dcc power per unit.
+
+
 Features:
 - LocoNet and Railsync
 - Dual Circuit Breakers
@@ -73,8 +77,6 @@ Features:
 - Auto Track Power
 - Opto Isolated Input
 - Dual Alarm Outputs
-
-We built this booster to help solve a few issues with our club layout. We needed more power districts and more circuit breakers. We decided to build a combo unit that would satisfy both needs. These units can output 5A continuous per output and have 2 track outputs each for a total of 10 amps of dcc power per unit.
 
 [![Circuit Board][circuit-board]](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster)
 
