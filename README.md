@@ -90,7 +90,7 @@ There you will find the EasyEDA CAD files, schematics, gerber files, and all the
 
 Also take a look at the BOM for the list of components you will need to complete the project.
 
-[![Screen Shot][screen-shot]](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster)
+[![IBT2][ibt2]](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster)
 
 *** The 2 slew rate resistors need bridged over (0 Ohm) and the current sense resistors removed on the IBT2! ***
 
