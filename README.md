@@ -205,4 +205,4 @@ Project Link: [https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster](htt
 [stars-url]: https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/stargazers
 [issues-shield]: https://img.shields.io/github/issues/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster.svg?style=for-the-badge
 [issues-url]: https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/issues
-[circuit-board]: images/screenshot.png
+[circuit-board]: images/gerber.png
