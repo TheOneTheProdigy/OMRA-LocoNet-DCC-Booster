@@ -94,7 +94,7 @@ Also take a look at the BOM for the list of components you will need to complete
 
 *** The 2 slew rate resistors need bridged over (0 Ohm) and the current sense resistors removed on the IBT2! ***
 
-*** If you have V1 of the PCB R17 has been removed, R5 and R20 have been changed to 22K! ***
+*** If you have V1 of the PCB R17 has been removed, R5 and R20 have been changed to 22K, and R6 has been replaced with a 680 Ohm! ***
 
 *** Adjust SMPS to 14.65V RMS and PCB 5V to 5.02V ***
 
@@ -139,7 +139,7 @@ Now copy this repository and open it in the Arduino IDE, select the board and CO
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-On first power up you may need to enable debugging to fine tune the analog inputs. The out of the box config works well but may be off .25 to .50 of an AMP due to manufacturing processes of the BTS7960 chips. The debugging flag will output all info to serial port with 9600 baud. Use this info to fine tune if you wish. The 2 offsets allow you to adjust the starting current offset and the 5A current offset. This will in turn change the S curve for all other measurements. You will want to shoot for 0 on no current load and a analog reading of about 520 on a 4.5A load. I use a 2.8 Ohm 10W resistor to test. 
+On first power up you may need to enable debugging to fine tune the analog inputs. The out of the box config works well but may be off about .25 to .50 of an amp due to the manufacturing processes of the BTS7960 chips. The debugging flag will output all info needed to serial port with 9600 baud. Use this info to fine tune if you wish. The 2 offsets allow you to adjust the starting current offset and the 5A current offset. This will in turn change the S curve for all other measurements. You will want to shoot for 0 on no current load and a analog reading of about 520 on a 4.5A load. I use a 2.8 Ohm 10W resistor to test. 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
