@@ -23,10 +23,6 @@
   <p align="center">
     This Is The Source Files For The OMRA Club DCC Booster Project
     <br />
-    <a href="https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster">View Demo</a>
     ·
     <a href="https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
