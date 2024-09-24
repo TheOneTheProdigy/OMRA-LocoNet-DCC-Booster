@@ -63,7 +63,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
+[![Product Name Screen Shot][circuit-board]](https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster)
 
 There are many great README templates available on GitHub; however, I didn't find one that really suited my needs so I created this enhanced one. I want to create a README template so amazing that it'll be the last one you ever need -- I think this is it.
 
@@ -205,4 +205,4 @@ Project Link: [https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster](htt
 [stars-url]: https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/stargazers
 [issues-shield]: https://img.shields.io/github/issues/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster.svg?style=for-the-badge
 [issues-url]: https://github.com/TheOneTheProdigy/OMRA-LocoNet-DCC-Booster/issues
-[product-screenshot]: images/screenshot.png
+[circuit-board]: images/screenshot.png
