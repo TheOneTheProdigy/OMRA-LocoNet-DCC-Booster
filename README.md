@@ -94,7 +94,7 @@ Also take a look at the BOM for the list of components you will need to complete
 
 *** The 2 slew rate resistors need bridged over (0 Ohm) and the current sense resistors removed on the IBT2! ***
 
-*** If you have V1 of the PCB R17 has been removed, R5 and R20 have been changed to 22K, and R6 has been replaced with a 680 Ohm! ***
+*** If you have V1 of the PCB R5 and R20 have been changed to 10K pot (.1W + .5W recomended), and R6 has been replaced with a 680 Ohm! ***
 
 *** Adjust SMPS to 14.65V RMS and PCB 5V to 5.02V ***
 
