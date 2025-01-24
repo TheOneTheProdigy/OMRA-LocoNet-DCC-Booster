@@ -1,6 +1,6 @@
 //  DCC / LocoNet RailSync Booster - Dual 5A Booster Districts With Overload Protection, Overload Alarm Output, And OLED Screen With Both Booster's Current and Status
 
-//  2024 Lance Bradley  Ozarks Model Railroad Assocation
+//  2025 Lance Bradley  Ozarks Model Railroad Assocation
 //  2024 Kurt Clement   Ozarks Model Railroad Assocation
 
 //  This Is The Firmware For The 10A-X2 Booster For The OMRA Club Springfield Missouri
@@ -16,16 +16,19 @@
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
-float CURRENT_LIMIT = 5.0; // Constant current limit in amps - Instant trip current should be a margin above this value.
-float INSTANT_FUSE_LIMIT = 6.5; // Lower Limit Of The Instant Blow Region In Amps. Anything Above This Will Blow Instantly.
+float CURRENT_LIMIT = 5.1; // Constant current limit in amps - Instant trip current should be a margin above this value.
+float INSTANT_FUSE_LIMIT = 6.0; // Lower Limit Of The Instant Blow Region In Amps. Anything Above This Will Blow Instantly.
 float SLOW_FUSE_TIME = 3000; // Milliseconds To Trip Slow Blow Fuse
 float BOOSTER_REBOOT_TIME = 3000; // Milliseconds to wait to energize the track again between short circuits.
-float BOOSTER_TRIPPED_COUNTER_RESET = 15000; // Milliseconds To Go Without A Current Trip To Reset Trip Counter
+float BOOSTER_REBOOT_COUNTER = 20; // Number of overcurrent failures before "BOOSTER_TRIPPED_COUNTER_RESET" timeout.
+float BOOSTER_TRIPPED_COUNTER_RESET = 10000; // Milliseconds to wait once "BOOSTER_REBOOT_COUNTER" counter has been hit before restarting the process.
 
-float BOOST1_CSENSE_OFFSET = 1.00; // 1 Is a good starting point
-float BOOST2_CSENSE_OFFSET = 1.00; // 1 Is a good starting point
-float BOOST1_IBT2_OFFSET = 0; // 0 Is a good starting point, -25 to 25 is a good range.
-float BOOST2_IBT2_OFFSET = 0; // 0 Is a good starting point, -25 to 25 is a good range.
+float BOOST1_CSENSE_OFFSET = 0.00; // Range = +- ADC (0-1023) every whole number offsets current measurements by .0083 amps
+float BOOST2_CSENSE_OFFSET = 0.00; // Range = +- ADC (0-1023) every whole number offsets current measurements by .0083 amps
+
+float RPWM_TIMER_LIMIT = 100; // Milliseconds To Go Without Valid Railsync Commands Before Boosters Shutdown 
+int RPWM_SIG_EDGES = 2; // Edges To Trigger RailSync Active Or Not Within RPWM_TRIGGER_LIMIT Timeframe
+float PRINT_DISPLAY_DELAY_TIME = 500; // Refresh Screen Every 500 Micro Seconds
 
 bool PRINT_DEBUG = false; // Print Debug Info To Serial
 float DEBUG_REFRESH_TIME = 2500; // Refresh serial debug if enabled (ms)
@@ -48,10 +51,8 @@ int ALM2_MICRO = 5;  // Pin To Activate LED and Piezo Alarm For Booster 2 Short 
 
 int BOOSTER1_REBOOT_COUNT = 0;
 int BOOSTER2_REBOOT_COUNT = 0;
-int RPWM_RX_COUNT = 0;
 int RPWM_COUNT = 0;
 int RPWM_DETECT = 1;
-bool RPWM_RX_TIMER_ACTIVE = false;
 bool BOOST1_ENABLED = false;
 bool IS_POWER1_TRIPPED = false;
 bool IS_POWER1_SLOW_PRE_TRIPPED = false;
@@ -59,13 +60,13 @@ bool BOOST2_ENABLED = false;
 bool IS_POWER2_TRIPPED = false;
 bool IS_POWER2_SLOW_PRE_TRIPPED = false;
 bool RPWM_TIMER_ACTIVE = false;
+int RPWM_LAST = 1;
 float BOOST1_CURRENT = 0;
 float BOOST2_CURRENT = 0;
 float BOOST1_AMPS = 0;
 float BOOST2_AMPS = 0;
 float BOOST1_CURRENT_AVG = 0;
 float BOOST2_CURRENT_AVG = 0;
-int RPWM_LAST = 1;
 float LAST_PRINT_DISPLAY_TIME = 0;
 float LAST_DEBUG_REFRESH_TIME = 0;
 unsigned long POWER1_SLOW_PRE_TIME = 0;
@@ -73,10 +74,6 @@ unsigned long POWER2_SLOW_PRE_TIME = 0;
 unsigned long BOOSTER1_SHUTDOWN_TIME = 0;
 unsigned long BOOSTER2_SHUTDOWN_TIME = 0;
 unsigned long RPWM_TIMER;
-
-float RPWM_TIMER_LIMIT = 100; // Milliseconds To Go Without Valid Railsync Commands Before Boosters Shutdown 
-int RPWM_SIG_EDGES = 2; // Edges To Trigger RailSync Active Or Not Within RPWM_TRIGGER_LIMIT Timeframe
-float PRINT_DISPLAY_DELAY_TIME = 500; // Refresh Screen Every 500 Micro Seconds
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
@@ -185,67 +182,7 @@ void loop() {
 
   BOOST1_CURRENT = analogReadFast(C_SENSE1_MICRO) - BOOST1_CSENSE_OFFSET;
   BOOST1_CURRENT_AVG = BOOST1_CURRENT_AVG + (BOOST1_CURRENT - BOOST1_CURRENT_AVG) / 10;
-  
-  if (BOOST1_CURRENT_AVG <= 2) {
-    BOOST1_AMPS = 0.00; // Inaccurate under 1 AMP this sets it under one so we can display < 1 on the OLED
-  }
-  else if (BOOST1_CURRENT_AVG <= 3.5) {
-    BOOST1_AMPS = BOOST1_CURRENT_AVG / 1;
-  }
-  else if (BOOST1_CURRENT_AVG <= 5) {
-    BOOST1_AMPS = BOOST1_CURRENT_AVG / 2.0;
-  }
-  else if (BOOST1_CURRENT_AVG <= 7.5) {
-    BOOST1_AMPS = BOOST1_CURRENT_AVG / 3.5;
-  }
-  else if (BOOST1_CURRENT_AVG <= 10) {
-    BOOST1_AMPS = BOOST1_CURRENT_AVG / 5;
-  }
-  else if (BOOST1_CURRENT_AVG <= 12.5) {
-    BOOST1_AMPS = BOOST1_CURRENT_AVG / 8.75;
-  }
-  else if (BOOST1_CURRENT_AVG <= 15) {
-    BOOST1_AMPS = BOOST1_CURRENT_AVG / 12.5;
-  }
-  else if (BOOST1_CURRENT_AVG <= 42.5) {
-    BOOST1_AMPS = BOOST1_CURRENT_AVG / 20.00;
-  }
-  else if (BOOST1_CURRENT_AVG <= 70) {
-    BOOST1_AMPS = (BOOST1_CURRENT_AVG + BOOST1_IBT2_OFFSET) / 33.65;
-  }
-  else if (BOOST1_CURRENT_AVG <= 125) {
-    BOOST1_AMPS = (BOOST1_CURRENT_AVG + BOOST1_IBT2_OFFSET) / 54.75;
-  }
-  else if (BOOST1_CURRENT_AVG <= 180) {
-    BOOST1_AMPS = (BOOST1_CURRENT_AVG + BOOST1_IBT2_OFFSET) / 76.13;
-  }
-  else if (BOOST1_CURRENT_AVG <= 235) {
-    BOOST1_AMPS = (BOOST1_CURRENT_AVG + BOOST1_IBT2_OFFSET) / 97.50;
-  }
-  else if (BOOST1_CURRENT_AVG <= 377) {
-    BOOST1_AMPS = (BOOST1_CURRENT_AVG + BOOST1_IBT2_OFFSET) / 106.70;
-  }
-  else if (BOOST1_CURRENT_AVG <= 449) {
-    BOOST1_AMPS = (BOOST1_CURRENT_AVG + BOOST1_IBT2_OFFSET) / 111.30;
-  }
-  else if (BOOST1_CURRENT_AVG <= 520) {
-    BOOST1_AMPS = (BOOST1_CURRENT_AVG + BOOST1_IBT2_OFFSET) / 115.90;
-  }
-  else if (BOOST1_CURRENT_AVG <= 540) {
-    BOOST1_AMPS = (BOOST1_CURRENT_AVG + BOOST1_IBT2_OFFSET) / 109.23;
-  }
-  else if (BOOST1_CURRENT_AVG <= 555.5) {
-    BOOST1_AMPS = (BOOST1_CURRENT_AVG + BOOST1_IBT2_OFFSET) / 100.75;
-  }
-  else if (BOOST1_CURRENT_AVG <= 573.25) {
-    BOOST1_AMPS = (BOOST1_CURRENT_AVG + BOOST1_IBT2_OFFSET) / 93.2;
-  }
-  else if (BOOST1_CURRENT_AVG <= 591) {
-    BOOST1_AMPS = (BOOST1_CURRENT_AVG + BOOST1_IBT2_OFFSET) / 85.65;
-  }
-  else {
-    BOOST1_AMPS = (BOOST1_CURRENT_AVG + BOOST1_IBT2_OFFSET) / 69.25;
-  }
+  BOOST1_AMPS = ((BOOST1_CURRENT_AVG / 204.6) / 0.588);
 
   // Stage 1 - Instant current fault trip
   
@@ -279,67 +216,7 @@ void loop() {
 
   BOOST2_CURRENT = analogReadFast(C_SENSE2_MICRO) - BOOST2_CSENSE_OFFSET;
   BOOST2_CURRENT_AVG = BOOST2_CURRENT_AVG + (BOOST2_CURRENT - BOOST2_CURRENT_AVG) / 10;
-  
-  if (BOOST2_CURRENT_AVG <= 2.00) {
-    BOOST2_AMPS = 0.00; // Inaccurate under 1 AMP this sets it under one so we can display < 1 on the OLED
-  }
-  else if (BOOST2_CURRENT_AVG <= 3.5) {
-    BOOST2_AMPS = BOOST2_CURRENT_AVG / 1;
-  }
-  else if (BOOST2_CURRENT_AVG <= 5) {
-    BOOST2_AMPS = BOOST2_CURRENT_AVG / 2.0;
-  }
-  else if (BOOST2_CURRENT_AVG <= 7.5) {
-    BOOST2_AMPS = BOOST2_CURRENT_AVG / 3.5;
-  }
-  else if (BOOST2_CURRENT_AVG <= 10) {
-    BOOST2_AMPS = BOOST2_CURRENT_AVG / 5;
-  }
-  else if (BOOST2_CURRENT_AVG <= 12.5) {
-    BOOST2_AMPS = BOOST2_CURRENT_AVG / 8.75;
-  }
-  else if (BOOST2_CURRENT_AVG <= 15) {
-    BOOST2_AMPS = BOOST2_CURRENT_AVG / 12.5;
-  }
-  else if (BOOST2_CURRENT_AVG <= 42.5) {
-    BOOST2_AMPS = BOOST2_CURRENT_AVG / 20.00;
-  }
-  else if (BOOST2_CURRENT_AVG <= 70) {
-    BOOST2_AMPS = (BOOST2_CURRENT_AVG + BOOST2_IBT2_OFFSET) / 33.65;
-  }
-  else if (BOOST2_CURRENT_AVG <= 125) {
-    BOOST2_AMPS = (BOOST2_CURRENT_AVG + BOOST2_IBT2_OFFSET) / 54.75;
-  }
-  else if (BOOST2_CURRENT_AVG <= 180) {
-    BOOST2_AMPS = (BOOST2_CURRENT_AVG + BOOST2_IBT2_OFFSET) / 76.13;
-  }
-  else if (BOOST2_CURRENT_AVG <= 235) {
-    BOOST2_AMPS = (BOOST2_CURRENT_AVG + BOOST2_IBT2_OFFSET) / 97.50;
-  }
-  else if (BOOST2_CURRENT_AVG <= 377) {
-    BOOST2_AMPS = (BOOST2_CURRENT_AVG + BOOST2_IBT2_OFFSET) / 106.70;
-  }
-  else if (BOOST2_CURRENT_AVG <= 449) {
-    BOOST2_AMPS = (BOOST2_CURRENT_AVG + BOOST2_IBT2_OFFSET) / 111.30;
-  }
-  else if (BOOST2_CURRENT_AVG <= 520) {
-    BOOST2_AMPS = (BOOST2_CURRENT_AVG + BOOST2_IBT2_OFFSET) / 115.90;
-  }
-  else if (BOOST2_CURRENT_AVG <= 540) {
-    BOOST2_AMPS = (BOOST2_CURRENT_AVG + BOOST2_IBT2_OFFSET) / 109.23;
-  }
-  else if (BOOST2_CURRENT_AVG <= 555.5) {
-    BOOST2_AMPS = (BOOST2_CURRENT_AVG + BOOST2_IBT2_OFFSET) / 100.75;
-  }
-  else if (BOOST2_CURRENT_AVG <= 573.25) {
-    BOOST2_AMPS = (BOOST2_CURRENT_AVG + BOOST2_IBT2_OFFSET) / 93.2;
-  }
-  else if (BOOST2_CURRENT_AVG <= 591) {
-    BOOST2_AMPS = (BOOST2_CURRENT_AVG + BOOST2_IBT2_OFFSET) / 85.65;
-  }
-  else {
-    BOOST2_AMPS = (BOOST2_CURRENT_AVG + BOOST2_IBT2_OFFSET) / 69.25;
-  }
+  BOOST2_AMPS = ((BOOST2_CURRENT_AVG / 204.6) / 0.588);
 
   // Stage 1 - Instant current fault trip
   
@@ -364,8 +241,7 @@ void loop() {
         BOOSTER2_SHUTDOWN_TIME = millis();
       }
     }
-  } 
-
+  }
   if (BOOST2_AMPS < CURRENT_LIMIT) {
     IS_POWER2_SLOW_PRE_TRIPPED = false;
   } 
@@ -378,7 +254,7 @@ void loop() {
       BOOSTER1_REBOOT_COUNT = 0;
     }
  if (IS_POWER1_TRIPPED == true) {
-    if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= BOOSTER_REBOOT_TIME) && (BOOSTER1_REBOOT_COUNT <= 20)) { // Retry for 10 quick loops
+    if (((millis() - BOOSTER1_SHUTDOWN_TIME) >= BOOSTER_REBOOT_TIME) && (BOOSTER1_REBOOT_COUNT <= BOOSTER_REBOOT_COUNTER)) { // Retry if time and not at counter limit.
       turnPower1On();
       BOOSTER1_REBOOT_COUNT = BOOSTER1_REBOOT_COUNT + 1;
     }
@@ -390,7 +266,7 @@ void loop() {
       BOOSTER2_REBOOT_COUNT = 0;
     }
  if (IS_POWER2_TRIPPED == true) {
-    if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= BOOSTER_REBOOT_TIME) && (BOOSTER2_REBOOT_COUNT <= 20)) { // Retry for 10 quick loops
+    if (((millis() - BOOSTER2_SHUTDOWN_TIME) >= BOOSTER_REBOOT_TIME) && (BOOSTER2_REBOOT_COUNT <= BOOSTER_REBOOT_COUNTER)) { // Retry if time and not at counter limit.
       turnPower2On();
       BOOSTER2_REBOOT_COUNT = BOOSTER2_REBOOT_COUNT + 1;
     }
@@ -449,11 +325,7 @@ void loop() {
     display.setCursor(4, 32);
     display.println("B1 AMPS B2");
     display.setCursor(0, 50);
-    if (BOOST1_AMPS <=.75){
-      display.println(" < 1");
-    }
-    else  {
-      display.println(BOOST1_AMPS, 2);
+    display.println(BOOST1_AMPS, 2);
       }
 
     // Display Booster 2 Load In Amps
@@ -462,11 +334,7 @@ void loop() {
     display.setTextColor(WHITE);
     display.setCursor(80, 50);
     display.setTextWrap(false);
-    if (BOOST2_AMPS <=.75){
-      display.println(" < 1");
-    }
-    else  {
-      display.println(BOOST2_AMPS, 2);
+    display.println(BOOST2_AMPS, 2);
     }
 
     // Finally Draw the Screen
