@@ -137,7 +137,7 @@ void setup() {
   display.setTextColor(WHITE);
   display.setCursor(22, 0);
   display.setTextWrap(false);
-  display.println("V2.0.01");
+  display.println("V2.0.02");
   display.drawBitmap(0, 16, OMRALOGO, 128, 64, WHITE);
   display.display();
   delay(1500);
@@ -326,7 +326,6 @@ void loop() {
     display.println("B1 AMPS B2");
     display.setCursor(0, 50);
     display.println(BOOST1_AMPS, 2);
-      }
 
     // Display Booster 2 Load In Amps
 
@@ -335,7 +334,6 @@ void loop() {
     display.setCursor(80, 50);
     display.setTextWrap(false);
     display.println(BOOST2_AMPS, 2);
-    }
 
     // Finally Draw the Screen
 
