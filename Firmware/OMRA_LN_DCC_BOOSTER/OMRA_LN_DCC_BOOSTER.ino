@@ -165,11 +165,11 @@ void loop() {
   
   // Check Current Of Boosters 1 and 2
     
-    // Booster 1
+// Booster 1
 
   // Current Sense Math and ADC Read In
   BOOST1_AMPS = ((analogReadFast(C_SENSE1_MICRO) * 0.00488) - BOOST1_CS_OFFSET) / 0.4352; // Each ADC step represents approx 4.88mV. .4352 = .000455 x 956.5 where .000455 is uA/A and 1K + 22K = 956.5.
-  BOOST1_AMPS = constrain(BOOST1_AMPS, 0, 9.9); // Filter Below 0A and above 9.9A..
+  BOOST1_AMPS = constrain(BOOST1_AMPS, 0, 9.9); // Filter Below 0A and above 9.9A.
 
   // Over current fault trip routine
   if (BOOST1_AMPS >= OC_LIMIT1 && !IS_POWER1_TRIPPED && !IS_POWER1_INSTANT_PRE_TRIPPED) {
@@ -186,7 +186,7 @@ void loop() {
     turnPower1Off();
   }
 
-  // DRV8874 NFAULT over current fault routine
+  // DRV8874 1 NFAULT over current fault routine
   IS_POWER1_DRV8874_OK = digitalRead(N_FAULT1_MICRO);
 
   if (!IS_POWER1_DRV8874_OK && !IS_POWER1_DRV8874_TRIPPED) {
@@ -221,13 +221,13 @@ void loop() {
     }
   }
 
-  // Booster 2
+    // Booster 2
 
   // Current Sense Math and ADC Read In
   BOOST2_AMPS = ((analogReadFast(C_SENSE2_MICRO) * 0.00488) - BOOST2_CS_OFFSET) / 0.4352; // Each ADC step represents approx 4.88mV. .4352 = .000455 x 956.5 where .000455 is uA/A and 1K + 22K = 956.5.
-  BOOST2_AMPS = constrain(BOOST2_AMPS, 0, 9.99); // Filter Below 0A and above 9.9A.
+  BOOST2_AMPS = constrain(BOOST2_AMPS, 0, 9.9); // Filter Below 0A and above 9.9A.
 
-  // Over current fault trip routine  
+  // Over current fault trip routine
   if (BOOST2_AMPS >= OC_LIMIT2 && !IS_POWER2_TRIPPED && !IS_POWER2_INSTANT_PRE_TRIPPED) {
       POWER2_INSTANT_PRE_TIME = CURRENT_CYCLE_TIME;
       IS_POWER2_INSTANT_PRE_TRIPPED = true;
@@ -242,7 +242,7 @@ void loop() {
     turnPower2Off();
   }
 
-    // DRV8874 2 NFAULT over current fault routine
+  // DRV8874 2 NFAULT over current fault routine
   IS_POWER2_DRV8874_OK = digitalRead(N_FAULT2_MICRO);
 
   if (!IS_POWER2_DRV8874_OK && !IS_POWER2_DRV8874_TRIPPED) {
@@ -250,7 +250,7 @@ void loop() {
     IS_POWER2_DRV8874_TRIPPED = true;
   }
     else if(IS_POWER2_DRV8874_OK && IS_POWER2_DRV8874_TRIPPED && (CURRENT_CYCLE_TIME - POWER2_DRV8874_NFAULT_TIME) >= OC_BOOST2_INRUSH) {
-      IS_POWER1_DRV8874_TRIPPED = false;
+      IS_POWER2_DRV8874_TRIPPED = false;
     } 
 
   if (!IS_POWER2_DRV8874_OK && !IS_POWER2_TRIPPED && (CURRENT_CYCLE_TIME - POWER2_DRV8874_NFAULT_TIME) >= OC_BOOST2_INRUSH) {
