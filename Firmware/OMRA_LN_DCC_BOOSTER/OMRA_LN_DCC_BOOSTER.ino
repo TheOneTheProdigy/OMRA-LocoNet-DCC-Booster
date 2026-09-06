@@ -8,8 +8,8 @@
 // Micro Pin Assignments
 int C_SENSE1_MICRO = A1; // Booster1 current sensing pin.
 int C_SENSE2_MICRO = A2; // Booster2 current sensing pin.
-int N_FAULT1_MICRO = 14; // Booster 1 instant DRV8874 fault pin.
-int N_FAULT2_MICRO = 15; // Booster 2 instant DRV8874 fault pin.
+int N_FAULT1_MICRO = 15; // Booster 1 instant DRV8874 fault pin.
+int N_FAULT2_MICRO = 14; // Booster 2 instant DRV8874 fault pin.
 int EN1_MICRO = 21; // Booster1 enable pin.
 int EN2_MICRO = 18; // Booster2 enable pin
 int PWM_DETECT_MICRO = 4; // Pin to detect valid railsync packets and shutdown track power if no signal.

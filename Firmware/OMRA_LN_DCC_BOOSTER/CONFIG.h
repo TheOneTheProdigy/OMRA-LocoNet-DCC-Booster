@@ -14,8 +14,8 @@ float BOOST1_CS_OFFSET = 0.2174; // Zeros the offset for current measurements. T
 float BOOST2_CS_OFFSET = 0.2174; // + Decreases - Increases current readings. If VREF 5.0V / 0.2174V = 0A.
 
 // Instant Overcurrent Protection
-float OC_LIMIT1 = 4.0; // Limit to trigger the over current protection in amps. Anything above this will blow after the inrush delay.
-float OC_LIMIT2 = 4.0; // Limit to trigger the over current protection in amps. Anything above this will blow after the inrush delay.
+float OC_LIMIT1 = 3.50; // Limit to trigger the over current protection in amps. Anything above this will blow after the inrush delay.
+float OC_LIMIT2 = 3.50; // Limit to trigger the over current protection in amps. Anything above this will blow after the inrush delay.
 float OC_TIMEOUT1 = 2000; // Milliseconds to wait to energize the track again between short circuits.
 float OC_TIMEOUT2 = 2000; // Milliseconds to wait to energize the track again between short circuits.
 unsigned long OC_BOOST1_INRUSH = 150; // Milliseconds to allow a inrush of current before tripping instant overcurrent protection. Useful for allowing large keepalives to be powered on and not detect as a short.
@@ -23,12 +23,12 @@ unsigned long OC_BOOST2_INRUSH = 150; // Milliseconds to allow a inrush of curre
 
 // Thermal Overcurrent Protection
 bool ENABLE_THERMAL_PROTECTION = true; // Enable or disable the thermal overcurrent protection.
-float OC_THERM_LIMIT1 = 3.25; // Limit to trigger the thermal over current protection in amps. Anything above this will blow after the OC_BOOST_THERM delay.
-float OC_THERM_LIMIT2 = 3.25; // Limit to trigger the thermal over current protection in amps. Anything above this will blow after the OC_BOOST_THERM delay.
+float OC_THERM_LIMIT1 = 3.00; // Limit to trigger the thermal over current protection in amps. Anything above this will blow after the OC_BOOST_THERM delay.
+float OC_THERM_LIMIT2 = 3.00; // Limit to trigger the thermal over current protection in amps. Anything above this will blow after the OC_BOOST_THERM delay.
 float OC_THERM_TIMEOUT1 = 4000; // Milliseconds to wait to energize the track again between thermal overloads.
 float OC_THERM_TIMEOUT2 = 4000; // Milliseconds to wait to energize the track again between thermal overloads.
-unsigned long OC_BOOST1_THERM = 8000; // Milliseconds to allow a inrush of current before tripping thermal overcurrent protection. Useful for allowing large keepalives to be powered on and not detect as a short.
-unsigned long OC_BOOST2_THERM = 8000; // Milliseconds to allow a inrush of current before tripping thermal overcurrent protection. Useful for allowing large keepalives to be powered on and not detect as a short.
+unsigned long OC_BOOST1_THERM = 8000; // Milliseconds to allow before tripping thermal overcurrent protection. Useful for allowing large keepalives to be powered on and not detect as a short.
+unsigned long OC_BOOST2_THERM = 8000; // Milliseconds to allow before tripping thermal overcurrent protection. Useful for allowing large keepalives to be powered on and not detect as a short.
 
 // Railsync Monitoring / Booster Enable
 float PWM_TIMER_LIMIT = 250; // Milliseconds to go without valid railsync commands before boosters shutdown. 
